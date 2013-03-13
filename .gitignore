@@ -3,11 +3,15 @@
 # any tracked files which get ignored after the change.
 
 *.tmp
+*.o
 cache/*
 TODO
 archives/*
 screenshots/*
-index.theme
+
+# exec
+hexa_to_hsv
+rotate
 
 # exception
 !cache/PKGBUILD
