@@ -13,5 +13,9 @@ screenshots/*
 hexa_to_hsv
 rotate
 
+# auto-generated files
+color_scheme.xpm
+default_color_scheme.txt
+
 # exception
 !cache/PKGBUILD
