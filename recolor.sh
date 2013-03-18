@@ -7,9 +7,9 @@ set -e
 #############
 hue_angle=0
 CRef=0
-png_folders=(16x16 22x22 32x32)
-svg_folders=(scalable)
-folders=($png_folders $svg_folders)
+png_subdirs=(16x16 22x22 32x32)
+svg_subdirs=(scalable)
+SUBDIRS=($png_subdirs $svg_subdirs)
 
 # absolute path dirs
 main_dir=$(pwd)
@@ -177,17 +177,17 @@ c|h)
 esac
 
 cd $image_dir_out
-rm -r -f $folders
-mkdir -p $folders
+rm -r -f $SUBDIRS
+mkdir -p $SUBDIRS
 
 case $arg in
 c|G|h)
-echo "convert images : $folders..."
+echo "convert images : $SUBDIRS..."
 	if [[ $path_lists == 'file' ]]
 	then
 		recolor_paths=$RECOLOR_PATHS
-		png_recolor_paths=($(make_paths $png_folders))
-		svg_recolor_paths=($(make_paths $svg_folders | sed 's/.png/.svg/g'))
+		png_recolor_paths=($(make_paths $png_subdirs))
+		svg_recolor_paths=($(make_paths $svg_subdirs | sed 's/.png/.svg/g'))
 	else
 	#elif [[ $path_lists == 'dir' ]]
 		cd $image_dir_in
@@ -204,13 +204,13 @@ if [[ $composite == 'TRUE' ]]
 then
 	if [[ $path_lists == 'file' ]]
 	then
-	echo "compose images : $png_folders..."
+	echo "compose images : $png_subdirs..."
 	recolor_paths=$COMPOSITE_PATHS
-	composite_paths=($(make_paths $png_folders))
+	composite_paths=($(make_paths $png_subdirs))
 	recolor_paths=$PART1_PATHS
-	part1_paths=($(make_paths $png_folders))
+	part1_paths=($(make_paths $png_subdirs))
 	recolor_paths=$PART2_PATHS
-	part2_paths=($(make_paths $png_folders))
+	part2_paths=($(make_paths $png_subdirs))
 	else
 	#elif [[ $path_lists == 'dir' ]]
 	echo "compose images : $image_dir_in..."
