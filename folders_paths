@@ -1,0 +1,31 @@
+#!/bin/zsh
+
+# paths for images to colorize
+RECOLOR_PATHS=(
+actions/add-folder-to-archive.png
+actions/document-open.png
+actions/folder-copy.png
+actions/folder-move.png
+actions/folder-new.png
+apps/fusion-icon.png
+apps/gnome-panel-workspace-switcher.png
+apps/vinagre.png
+emblems/emblem-desktop.png
+places/folder-documents.png
+places/folder-downloads.png
+places/folder-music.png
+places/folder-pictures.png
+places/folder.png
+places/folder-publicshare.png
+places/folder-remote.png
+places/folder-videos.png
+places/user-desktop.png
+places/user-home.png
+status/folder-open.png
+)
+
+COMPOSITE_PATHS=(actions/folder-new.png)
+PART1_PATHS=(places/folder.png)
+PART2_PATHS=(stock/flash_folder.png)
+
+export RECOLOR_PATHS COMPOSITE_PATHS PART1_PATHS PART2_PATHS

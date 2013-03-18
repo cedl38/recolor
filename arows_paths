@@ -1,0 +1,41 @@
+#!/bin/zsh
+
+# paths for images to colorize
+RECOLOR_PATHS=(
+	go-bottom.png			\
+	go-down.png			\
+	go-first.png			\
+	go-home.png			\
+	go-jump.png			\
+	go-last.png			\
+	go-next.png			\
+	go-previous.png			\
+	go-top.png			\
+	go-up.png			\
+	edit-redo.png			\
+	edit-undo.png			\
+	format-text-bold.png		\
+	format-text-italic.png		\
+	format-text-strikethrough.png	\
+	format-text-underline.png	\
+	go-bottom.png			\
+	go-down.png			\
+	go-first.png			\
+	go-home.png			\
+	go-jump.png			\
+	go-last.png			\
+	go-next.png			\
+	go-previous.png			\
+	go-top.png			\
+	go-up.png			\
+	list-add.png	\
+	list-remove.png	\
+	view-fullscreen.png		\
+	view-refresh.png 		\
+)
+
+COMPOSITE_PATHS=()
+PART1_PATHS=()
+PART2_PATHS=()
+
+export RECOLOR_PATHS COMPOSITE_PATHS PART1_PATHS PART2_PATHS

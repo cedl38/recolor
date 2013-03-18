@@ -5,80 +5,23 @@ set -e
 
 # parameters
 #############
-CRef=0
 hue_angle=0
-CDefault='DD9A3A'
-opt=$1
-Hue=$2
+CRef=0
 png_folders=(16x16 22x22 32x32)
 svg_folders=(scalable)
 folders=($png_folders $svg_folders)
 
 # absolute path dirs
 main_dir=$(pwd)
-image_dir_in=$(dirname $main_dir)
-image_dir_out="$image_dir_in/cache"
 
-# paths for images to colorize
-images_paths=(
-actions/add-folder-to-archive.png
-actions/document-open.png
-actions/folder-copy.png
-actions/folder-move.png
-actions/folder-new.png
-apps/fusion-icon.png
-apps/gnome-panel-workspace-switcher.png
-apps/vinagre.png
-emblems/emblem-desktop.png
-places/folder-documents.png
-places/folder-downloads.png
-places/folder-music.png
-places/folder-pictures.png
-places/folder.png
-places/folder-publicshare.png
-places/folder-remote.png
-places/folder-videos.png
-places/user-desktop.png
-places/user-home.png
-status/folder-open.png
-)
-
-composite_images_paths=(actions/folder-new.png)
-part1_images_paths=(places/folder.png)
-part2_images_paths=(stock/flash_folder.png)
-
-# Default color scheme for svg
-# top color 
-#729fcf
-# buttom color
-#6194cb
-# border buttom color
-#3465a4
-default_color_scheme=($(grep -o '#[1-9a-ZA-Z]*' default_color_scheme.xpm | cut -d'#' -f2))
-set $default_color_scheme
-echo "default color scheme : $default_color_scheme"
-top_color=$1
-buttom_color=$2
-border_color=$3
-
-# reload image path
-reload() {
-	cd $1
-	images_paths=($(find */*.png -type f > $main_dir/image_path))
-	cd $main_dir
-}
-
-color_selection() {
-echo 'select the [main color] for folders images or:'
-echo '[Br]=brown(default)'
-
-read answer
-case $answer in
-Br)				CRef='DD9A3A'		;;
-\#*)			CRef=${answer:1:6} 	;;
-[a-z][a-z1-9]*)	CRef=$(grep -P "$answer\t" colormap | cut -f3 | cut -d'#' -f2) ;;
-*) CRef=$CDefault	;;
-esac
+make_paths() {
+paths=''
+for folder
+do
+paths_folder=($(echo -e $(echo $recolor_paths|sed 's/ /\\n/g')| sed "s/^/$folder\//g"))
+paths=($paths $paths_folder)
+done
+echo $paths
 }
 
 color_pick() {
@@ -129,74 +72,155 @@ done
 recolor_path() {
 recolor_function=$1
 shift
-for folder
+for image_path
 do
-	set $images_paths
-	for image_path
-	do
-	mkdir -p $folder/$(dirname $image_path)
-		if [[ -f $image_dir_in/$folder/$image_path ]]
-		then
-		$recolor_function $image_dir_in/$folder/$image_path $folder/$image_path
-		fi
-	done
+mkdir -p $(dirname $image_path)
+	if [[ -f $image_dir_in/$image_path ]]
+	then
+	$recolor_function $image_dir_in/$image_path $image_path
+	fi
 done
 }
 
 compose_images() {
-for folder
+i=1
+for composite_path
 do
-	i=1
-	set $part1_images_paths
-	for image_path
-	do
-	composite $image_dir_in/$folder/$part2_images_paths[i] $folder/$image_path $folder/$composite_images_paths
-	(( i++ ))
-	done
+mkdir -p $(dirname $composite_path)
+composite $image_dir_in/$part2_paths[i] $part1_paths[i] $composite_path
+(( i++ ))
 done
 }
 
 # options
 ##########
 
-case $opt in
--r)	reload '../../zen-colors/gnome-colors/22x22'	;;
--d)	CRef=$CDefault 	;;
--h)	hue_angle=$Hue	; echo "hue-value = $hue_angle";;
--g)	 ;;
-'') color_selection	;;
-*) exit 1	;;
+color_value() {
+case $1 in;
+Br)	CRef='DD9A3A'	;;
+\#*)	cref=${1:1:6} 	;;
+[a-z][a-z1-9]*)	cref=$(grep -p "$1\t" colormap | cut -f3 | cut -d'#' -f2) ;;
+*) echo "Invalid color"; exit 1	;;
+esac
+}
+
+show_help() {
+echo "usage : [OPTIONS] [ARG] <dir-in> <dir-out>
+OPTIONS :
+  -p <paths-lists> : file contain list of pathname parameters
+ARGUMENTS :
+  -c <color> : by name or hexadecimal <Br>=Brown  
+  -G : convert image to grayscale
+  -h <hue-angle> : use hue angle instead of color name
+  -O : compose icons with composite function"
+}
+
+#default recolor function for png files
+recolor_png=recolor
+path_lists='dir'
+composite='FALSE'
+while getopts c:CGh:Op: opt
+do
+	case $opt in
+	c)	arg=c; color_value $OPTARG ;;
+	G)	arg=G; recolor_png=discolor	;;
+	h)	arg=h; hue_angle=$OPTARG ;;
+	O)	composite='TRUE' ;;
+	p)	path_lists='file'; source $OPTARG ;;
+	\?)	show_help; exit 1 ;;
+	esac
+done
+
+# shift to <dir-in> <dir-out>
+if [[ $OPTIND == 1 ]]
+then
+ show_help; exit 1;
+fi
+
+shift $(($OPTIND -1))
+if [[ $1 == '' ]]
+then
+image_dir_in="$(dirname $main_dir)"
+image_dir_out="$image_dir_in/cache"
+else
+image_dir_in=$1
+image_dir_out=$2
+fi
+
+case $arg in
+c|G|h)
+	# Default color scheme for svg
+	# top color				#729fcf
+	# buttom color			#6194cb
+	# border buttom color	#3465a4
+	default_color_scheme=($(grep -o '#[1-9a-ZA-Z]*' default_color_scheme.xpm | cut -d'#' -f2))
+	set $default_color_scheme
+	echo "default color scheme : $default_color_scheme"
+	top_color=$1; buttom_color=$2; border_color=$3
 esac
 
-case $opt in
--d|-r|'')	hue_angle=$(./rotate $buttom_color $CRef)	;;
+case $arg in
+c)	hue_angle=$(./rotate $buttom_color $CRef) ;;
 esac
 
-case $opt in
--g) 
+case $arg in
+G)
 	color_scheme=($(discolor_xpm default_color_scheme.xpm color_scheme.xpm))
 	echo "grayscale color scheme : $color_scheme"
-;;
-*)
+	;;
+c|h)
 	modulate_arg=$(( ( $hue_angle * 100/180 ) + 100 ))
 	echo $default_color_scheme > default_color_scheme.txt
 	color_scheme=($(./rotate -hue $hue_angle default_color_scheme.txt))
-	substitute_color $default_color_scheme.xpm $color_scheme.xpm
+	substitute_color default_color_scheme.xpm color_scheme.xpm
 	echo "new color scheme : $color_scheme"
-	;;
 esac
 
-echo "convert images : $folders..."
 cd $image_dir_out
 rm -r -f $folders
 mkdir -p $folders
 
-case $opt in
--g)	recolor_path discolor $png_folders ;;
-*)	recolor_path recolor $png_folders	;;
+case $arg in
+c|G|h)
+echo "convert images : $folders..."
+	if [[ $path_lists == 'file' ]]
+	then
+		recolor_paths=$RECOLOR_PATHS
+		png_recolor_paths=($(make_paths $png_folders))
+		svg_recolor_paths=($(make_paths $svg_folders | sed 's/.png/.svg/g'))
+	else
+	#elif [[ $path_lists == 'dir' ]]
+		cd $image_dir_in
+		svg_recolor_paths=($(find **/*.svg -type f))
+		png_recolor_paths=($(find **/*.png -type f))
+		cd -
+	fi
+
+	recolor_path $recolor_png $png_recolor_paths
+	recolor_path substitute_color $svg_recolor_paths
 esac
 
-# replace .png with .svg
-images_paths=($(echo $images_paths | sed 's/.png/.svg/g'))
-recolor_path substitute_color $svg_folders
-compose_images $png_folders
+if [[ $composite == 'TRUE' ]]
+then
+	if [[ $path_lists == 'file' ]]
+	then
+	echo "compose images : $png_folders..."
+	recolor_paths=$COMPOSITE_PATHS
+	composite_paths=($(make_paths $png_folders))
+	recolor_paths=$PART1_PATHS
+	part1_paths=($(make_paths $png_folders))
+	recolor_paths=$PART2_PATHS
+	part2_paths=($(make_paths $png_folders))
+	else
+	#elif [[ $path_lists == 'dir' ]]
+	echo "compose images : $image_dir_in..."
+	part2_dir=$image_dir_in/stock
+	cd $image_dir_in
+	part1_paths=($(find **/*.png -type f))
+	composite_paths=$image_dir_out
+	cd $part2_dir
+	part2_paths=($(find **/*.png -type f))
+	fi
+	cd $image_dir_out
+	compose_images $composite_paths
+fi
