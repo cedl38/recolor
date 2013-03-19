@@ -6,8 +6,10 @@ set -e
 
 # parameters
 #############
-hue_angle=0
 CRef=0
+modulate_hue=0
+modulate_brighness=100
+modulate_saturation=100
 png_subdirs=(16x16 22x22 32x32)
 svg_subdirs=(scalable)
 SUBDIRS=($png_subdirs $svg_subdirs)
@@ -32,8 +34,16 @@ default_color_map=($(grep -o 'c [#0-9a-ZA-Z]*"' foo.xpm | cut -d' ' -f2 | cut -d
 # steps :
 ##########
 
+color() {
+convert $1 -fill "#$CRef" -tint $tint $1
+}
+
+discolor() {
+convert $1 -type GrayScaleMatte $1
+}
+
 recolor() {
-convert $1 -modulate 100,100,$modulate_arg $1
+convert $1 -define modulate:colorspace=HSB -modulate $modulate_brighness,$modulate_saturation,$modulate_hue $1
 }
 
 substitute_color() {
@@ -47,14 +57,10 @@ set $default_color_scheme
 	done
 }
 
-discolor() {
-convert $1 -type GrayScaleMatte $1
-}
-
-discolor_xpm() {
+recolor_xpm() {
 # workaround to make sure than files are formated in the same way
 convert $1 $1
-discolor $1 $1
+$recolor_png $1
 colors=($(grep -o '#[0-9a-ZA-Z]*' $1 | cut -d'#' -f2))
 # workaround : convert color hexa 12 to 6 characters
 set $colors
@@ -100,8 +106,13 @@ esac
 show_help() {
 echo "usage : [OPTIONS] [ARG] <dir-in> <dir-out>
 OPTIONS :
+	-b <brighness> : modulate brighness (0 to 200)
+	-D : use 
+	-f <tint> : fill color tint (0 to 100)
+	-F : fill color tint=100
 	-p <paths-lists> : file contain list of pathname parameters
 	-O : compose icons with composite function
+	-s <saturation> : modulate saturation (0 to 200)
 ARGUMENTS :
 	-c <color> : by name or hexadecimal <Br>=Brown
 	-G : convert image to grayscale
@@ -112,14 +123,18 @@ ARGUMENTS :
 recolor_png=recolor
 path_lists='dir'
 composite='FALSE'
-while getopts c:CGh:Op: opt
+while getopts b:c:Cf:FGh:Op:s: opt
 do
 	case $opt in
+	b)	modulate_brighness=$OPTARG ;;
 	c)	arg=c; color_value $OPTARG ;;
+	f)	arg=f; recolor_png=color; tint=$OPTARG	;;
+	F)	arg=F; recolor_png=color; tint=100	;;
 	G)	arg=G; recolor_png=discolor	;;
-	h)	arg=h; hue_angle=$OPTARG ;;
+	h)	arg=h; modulate_hue=$OPTARG ;;
 	O)	composite='TRUE' ;;
 	p)	path_lists='file'; source $OPTARG ;;
+	s)	modulate_saturation=$OPTARG ;;
 	\?)	show_help; exit 1 ;;
 	esac
 done
@@ -132,6 +147,7 @@ fi
 
 MAIN_DIR=$(pwd)
 shift $(($OPTIND -1))
+
 if [[ $2 == '' ]]
 then
 	if [[ $1 == '' ]]
@@ -141,9 +157,9 @@ then
 	IMAGE_DIR_OUT=$1
 	fi
 else
+	# (re)load IMAGE_DIR_OUT
 	IMAGE_DIR_IN=$1
 	IMAGE_DIR_OUT=$2
-	echo $SUBDIRS
 	set $SUBDIRS
 	for subdir
 	do
@@ -153,7 +169,7 @@ else
 fi
 
 case $arg in
-c|G|h)
+c|f|F|G|h)
 	# Default color scheme for svg
 	# top color				#729fcf
 	# buttom color			#6194cb
@@ -162,29 +178,24 @@ c|G|h)
 	set $default_color_scheme
 	echo "default color scheme : $default_color_scheme"
 	top_color=$1; buttom_color=$2; border_color=$3
+esac
+
+case $arg in
+c)	hue_angle=$(./rotate $buttom_color $CRef)
+	modulate_hue=$(( ( $hue_angle * 100/180 ) + 100 )) ;;
+esac
+echo $modulate_hue
+case $arg in
+c|f|F|G|h)
 	cp default_color_scheme.xpm color_scheme.xpm
-esac
-
-case $arg in
-c)	hue_angle=$(./rotate $buttom_color $CRef) ;;
-esac
-
-case $arg in
-G)
-	color_scheme=($(discolor_xpm color_scheme.xpm))
-	echo "grayscale color scheme : $color_scheme"
-	;;
-c|h)
-	modulate_arg=$(( ( $hue_angle * 100/180 ) + 100 ))
-	echo $default_color_scheme > default_color_scheme.txt
-	color_scheme=($(./rotate -hue $hue_angle default_color_scheme.txt))
-	substitute_color color_scheme.xpm
+	#recolor_xpm color_scheme.xpm
+	color_scheme=($(recolor_xpm color_scheme.xpm))
 	echo "new color scheme : $color_scheme"
 esac
 
 cd $IMAGE_DIR_OUT
 case $arg in
-c|G|h)
+c|f|F|G|h)
 echo "convert images : $SUBDIRS..."
 	if [[ $path_lists == 'file' ]]
 	then
