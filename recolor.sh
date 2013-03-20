@@ -6,9 +6,9 @@ set -e
 
 # parameters
 #############
-CRef=0
-modulate_hue=0
-modulate_brighness=100
+CRef='000000'
+modulate_hue=100
+modulate_brightness=100
 modulate_saturation=100
 png_subdirs=(16x16 22x22 32x32)
 svg_subdirs=(scalable)
@@ -73,12 +73,7 @@ convert $1 -type GrayScaleMatte $1
 }
 
 recolor() {
-#echo $BC_hsv[2] $CRef_hsv[2]
-#alpha 100 $BC_hsv[2] $CRef_hsv[2]
-#alpha 255 $BC_hsv[3] $CRef_hsv[3]
-modulate_saturation=$(alpha 100 $BC_hsv[2] $CRef_hsv[2])
-modulate_brighness=$(alpha 255 $BC_hsv[3] $CRef_hsv[3])
-convert $1 -define modulate:colorspace=HSB -modulate $modulate_brighness,$modulate_saturation,$modulate_hue $1
+convert $1 -define modulate:colorspace=HSB -modulate $modulate_brightness,$modulate_saturation,$modulate_hue $1
 }
 
 substitute_color() {
@@ -97,7 +92,7 @@ for i
 do
 	sed "s/#0*/#$i/" ini.xpm > color.xpm
 	$recolor_png color.xpm
-	color=($(grep -o 'c [#0-9a-ZA-Z]*"' color.xpm | grep -v 'None' | cut -d' ' -f2 | cut -d\" -f1))
+	color=($(grep -o 'c [#0-9a-ZA-Z]*"' $MAIN_DIR/color.xpm | grep -v 'None' | cut -d' ' -f2 | cut -d\" -f1))
 	if [[ "${color:0:1}" == '#' ]]
 	then
 		# workaround : convert color hexa 12 to 6 characters
@@ -143,19 +138,24 @@ esac
 }
 
 show_help() {
-echo "usage : [OPTIONS] [ARG] <dir-in> <dir-out>
-OPTIONS :
-	-b <brighness> : modulate brighness (0 to 200)
-	-D : use 
-	-f <tint> : fill color tint (0 to 100)
-	-F : fill color tint=100
-	-p <paths-lists> : file contain list of pathname parameters
-	-O : compose icons with composite function
-	-s <saturation> : modulate saturation (0 to 200)
+echo "
+usage : [OPTIONS] [ARG] <dir-in> <dir-out>
 ARGUMENTS :
+	-b <brightness> : modulate brightness (0 to 200)
 	-c <color> : by name or hexadecimal <Br>=Brown
+	-G <brightness> : convert image to grayscale and modulate brightness
 	-G : convert image to grayscale
-	-h <hue-angle> : use hue angle instead of color name"
+	-h <hue-angle> : modulate hue angle
+	-s <saturation> : modulate saturation (0 to 200)
+OPTIONS :
+	-B : modulate brightness from -c arg.
+	-f <tint> : fill color (-c) tint (0 to 100)
+	-F : fill color tint=100
+	-H : modulate hue from -c arg.
+	-O : compose icons with composite function
+	-p <paths-lists> : file contain list of pathname parameters
+	-S : modulate saturation from -c arg.
+"
 }
 
 # default recolor function for png files
@@ -164,19 +164,24 @@ data_file='data_ini'
 # default data source
 source data_ini
 composite='FALSE'
+H='FALSE'; S='FALSE'; B='FALSE'
 
-while getopts b:c:Cf:FGh:Op:s: opt
+while getopts b:Bc:Cf:Fg:Gh:HOp:s:S opt
 do
 	case $opt in
-	b)	modulate_brighness=$OPTARG ;;
+	b)	arg=m; modulate_brightness=$OPTARG ;;
+	B)	B='TRUE' ;;
 	c)	arg=c; color_value $OPTARG ;;
-	f)	arg=f; recolor_png=color; tint=$OPTARG	;;
-	F)	arg=F; recolor_png=color; tint=100	;;
+	f)	recolor_png=color; tint=$OPTARG	;;
+	F)	recolor_png=color; tint=100	;;
+	g)	arg=g; modulate_brightness=$OPTARG; recolor_png=discolor ;;
 	G)	arg=G; recolor_png=discolor	;;
-	h)	arg=h; modulate_hue=$OPTARG ;;
+	h)	arg=m; modulate_hue=$OPTARG ;;
+	H)	H='TRUE' ;;
 	O)	composite='TRUE' ;;
 	p)	source $OPTARG; data_file="$OPTARG" ;;
-	s)	modulate_saturation=$OPTARG ;;
+	s)	arg=m; modulate_saturation=$OPTARG ;;
+	S)	S='TRUE' ;;
 	\?)	show_help; exit 1 ;;
 	esac
 done
@@ -219,33 +224,38 @@ else
 fi
 
 case $arg in
-c|f|F|G|h)
+c|g|G|m)
 	color_scheme_ini=($(hexacv $COLOR_SCHEME_INI))
-	echo "default color scheme : $color_scheme_ini"
+	echo "default color scheme : $COLOR_SCHEME_INI"
 	set $color_scheme_ini
 	top_color=$1; buttom_color=$2; border_color=$3
-esac
 
-case $arg in
-c)	hue_angle=$(./rotate $buttom_color $CRef)
-	modulate_hue=$(( ( $hue_angle * 100/180 ) + 100 )) ;;
-esac
-echo $modulate_hue
-case $arg in
-c|f|F|G|h)
-	BC_hsv=($(./hexa_to_hsv $buttom_color))
-	CRef_hsv=($(./hexa_to_hsv $CRef))
-	color_scheme=($(recolor_xpm $color_scheme_ini))
-	i=1; set $color_scheme
-	for color; do COLOR_SCHEME[i]="'#$color'"; (( i++ )); done
-	echo "new color scheme : $COLOR_SCHEME"
-	sed "s/COLOR_SCHEME_INI=(.*)/COLOR_SCHEME=($COLOR_SCHEME)/" $data_file > data
-esac
+	if [[ $arg == 'c' ]]
+	then
+		if [[ $H == 'FALSE' ]] && [[ $S == 'FALSE' ]] && [[ $B == 'FALSE' ]]
+		then
+		H='TRUE'; S='TRUE'; B='TRUE'
+		fi
+		BC_hsv=($(./hexa_to_hsv $buttom_color))
+		CRef_hsv=($(./hexa_to_hsv $CRef))
+		if [[ $H == 'TRUE' ]]
+		then
+			hue_angle=$(./rotate $buttom_color $CRef)
+			modulate_hue=$(( ( $hue_angle * 100/180 ) + 100 ))
+		fi
+		if [[ $S == 'TRUE' ]]
+		then
+		modulate_saturation=$(alpha 100 $BC_hsv[2] $CRef_hsv[2])
+		echo $modulate_saturation
+		fi
+		if [[ $B == 'TRUE' ]]
+		then
+		modulate_brightness=$(alpha 255 $BC_hsv[3] $CRef_hsv[3])
+		fi
+	fi
 
-cd $IMAGE_DIR_OUT
-case $arg in
-c|f|F|G|h)
-echo "convert images : $SUBDIRS..."
+	cd $IMAGE_DIR_OUT
+	echo "convert images : $SUBDIRS..."
 	if [[ $RECOLOR_PATHS == '' ]]
 	then
 		svg_recolor_paths=($(find **/*.svg -type f))
@@ -255,13 +265,33 @@ echo "convert images : $SUBDIRS..."
 		png_recolor_paths=($(make_paths $png_subdirs))
 		svg_recolor_paths=($(make_paths $svg_subdirs | sed 's/.png/.svg/g')) 
 	fi
-
+	echo $modulate_hue
 	recolor_path $recolor_png $png_recolor_paths
+	case $arg in
+	g)	recolor_path recolor $png_recolor_paths
+	esac
+
+	cd $MAIN_DIR
+	color_scheme=($(recolor_xpm $color_scheme_ini))
+
+	case $arg in
+	g)	$recolor_png=recolor
+		color_scheme=($(recolor_xpm $color_scheme))
+		recolor_path recolor $png_recolor_paths
+	esac
+
+	i=1; set $color_scheme
+	for color; do COLOR_SCHEME[i]="'#$color'"; (( i++ )); done
+	echo "new color scheme : $COLOR_SCHEME"
+	sed "s/COLOR_SCHEME_INI=(.*)/COLOR_SCHEME=($COLOR_SCHEME)/" $data_file > data
+	cd -
+
 	recolor_path substitute_color $svg_recolor_paths
 esac
 
 if [[ $composite == 'TRUE' ]]
 then
+	cd $IMAGE_DIR_OUT
 	if [[ $COMPOSITE_PATHS == '' ]]
 	then
 	echo "compose images : $IMAGE_DIR_OUT..."
