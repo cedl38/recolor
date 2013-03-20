@@ -34,6 +34,28 @@ default_color_map=($(grep -o 'c [#0-9a-ZA-Z]*"' foo.xpm | cut -d' ' -f2 | cut -d
 # steps :
 ##########
 
+hexacv() {
+	for i
+	do
+		if [[ "${i:0:1}" == '#' ]]
+		then
+			echo "${i:1:6}"
+		else
+			# convert color name to hexa
+			echo $(grep -P "$i\t" colormap | cut -f3 | cut -d'#' -f2)
+		fi
+	done
+}
+
+alpha() {
+if [[ $3 > $2 ]]
+then
+echo $(((200*$3-200*$2+100*$1-100*$3)/($1-$2)))
+else
+echo $((100 * $3 / $2))
+fi
+}
+
 color() {
 convert $1 -fill "#$CRef" -tint $tint $1
 }
@@ -58,15 +80,19 @@ set $color_scheme_ini
 }
 
 recolor_xpm() {
-# workaround to make sure than files are formated in the same way
-convert $1 $1
-$recolor_png $1
-colors=($(grep -o '#[0-9a-ZA-Z]*' $1 | cut -d'#' -f2))
-# workaround : convert color hexa 12 to 6 characters
-set $colors
 for i
 do
-echo ${i:0:2}${i:4:2}${i:8:2} | tr '[A-Z]' '[a-z]'
+	sed "s/#0*/#$i/" ini.xpm > color.xpm
+	$recolor_png color.xpm
+	color=($(grep -o 'c [#0-9a-ZA-Z]*"' color.xpm | grep -v 'None' | cut -d' ' -f2 | cut -d\" -f1))
+	if [[ "${color:0:1}" == '#' ]]
+	then
+		# workaround : convert color hexa 12 to 6 characters
+		echo "${color:1:2}${color:5:2}${color:9:2}" | tr '[A-Z]' '[a-z]'
+	else
+		# convert color name to hexa
+		echo $(grep -P "$color\t" colormap | cut -f3 | cut -d'#' -f2)
+	fi
 done
 }
 
@@ -97,8 +123,8 @@ done
 color_value() {
 case $1 in;
 Br)				CRef='DD9A3A'	;;
-\#*)			CRef=${1:1:6} 	;;
-[a-z][a-z1-9]*)	CRef=$(grep -p "$1\t" colormap | cut -f3 | cut -d'#' -f2) ;;
+\#*)			CRef="${1:1:6}" 	;;
+[a-z][a-z1-9]*)	CRef=$(grep -P "$1\t" colormap | cut -f3 | cut -d'#' -f2) ;;
 *) echo "Invalid color"; exit 1	;;
 esac
 }
@@ -121,8 +147,9 @@ ARGUMENTS :
 
 # default recolor function for png files
 recolor_png=recolor
-color_scheme_ini_xpm='color_scheme_ini.xpm'
-paths_lists=''
+data_file='data_ini'
+# default data source
+source data_ini
 composite='FALSE'
 
 while getopts b:c:Cf:FGh:Op:s: opt
@@ -135,8 +162,7 @@ do
 	G)	arg=G; recolor_png=discolor	;;
 	h)	arg=h; modulate_hue=$OPTARG ;;
 	O)	composite='TRUE' ;;
-	p)	source $OPTARG; paths_lists="$OPTARG"
-		cp $paths_lists paths_lists ;;
+	p)	source $OPTARG; data_file="$OPTARG" ;;
 	s)	modulate_saturation=$OPTARG ;;
 	\?)	show_help; exit 1 ;;
 	esac
@@ -154,19 +180,12 @@ shift $(($OPTIND -1))
 if [[ $2 == '' ]]
 then
 	# recursive functionality
-	if [[ $paths_lists == '' ]]
+	if [[ $data_file == 'data_ini' ]] && [[ -f data ]]
 	then
-		if [[ -f color_scheme.xpm ]]
-		then
-			# load generated color_scheme.xpm if exist
-			color_scheme_ini_xpm='color_scheme.xpm'
-		fi
-		if [[ -f paths_lists ]]
-		then
-			# load generated paths_lists if exist
-			paths_lists='paths_lists'
-			source paths_lists
-		fi
+		# load generated data file if exist
+		data_file='data'
+		source data
+		COLOR_SCHEME_INI=$COLOR_SCHEME
 	fi
 	if [[ $1 == '' ]]
 	then
@@ -188,13 +207,9 @@ fi
 
 case $arg in
 c|f|F|G|h)
-	# Default color scheme for svg
-	# top color				#729fcf
-	# buttom color			#6194cb
-	# border buttom color	#3465a4
-	color_scheme_ini=($(grep -o '#[1-9a-ZA-Z]*' $color_scheme_ini_xpm | cut -d'#' -f2))
-	set $color_scheme_ini
+	color_scheme_ini=($(hexacv $COLOR_SCHEME_INI))
 	echo "default color scheme : $color_scheme_ini"
+	set $color_scheme_ini
 	top_color=$1; buttom_color=$2; border_color=$3
 esac
 
@@ -205,19 +220,18 @@ esac
 echo $modulate_hue
 case $arg in
 c|f|F|G|h)
-	cp $color_scheme_ini_xpm color_scheme.xpm
-	#recolor_xpm color_scheme.xpm
-	color_scheme=($(recolor_xpm color_scheme.xpm))
-	echo "new color scheme : $color_scheme"
-	cp $color_scheme_ini_xpm color_scheme.xpm
-	substitute_color color_scheme.xpm
+	color_scheme=($(recolor_xpm $color_scheme_ini))
+	i=1; set $color_scheme
+	for color; do COLOR_SCHEME[i]="'#$color'"; (( i++ )); done
+	echo "new color scheme : $COLOR_SCHEME"
+	sed "s/COLOR_SCHEME_INI=(.*)/COLOR_SCHEME=($COLOR_SCHEME)/" $data_file > data
 esac
 
 cd $IMAGE_DIR_OUT
 case $arg in
 c|f|F|G|h)
 echo "convert images : $SUBDIRS..."
-	if [[ $paths_lists == '' ]]
+	if [[ $RECOLOR_PATHS == '' ]]
 	then
 		svg_recolor_paths=($(find **/*.svg -type f))
 		png_recolor_paths=($(find **/*.png -type f))
@@ -233,7 +247,7 @@ esac
 
 if [[ $composite == 'TRUE' ]]
 then
-	if [[ $paths_lists == '' ]]
+	if [[ $COMPOSITE_PATHS == '' ]]
 	then
 	echo "compose images : $IMAGE_DIR_OUT..."
 	part1_paths=($(find **/*.png -type f))

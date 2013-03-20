@@ -262,7 +262,6 @@ green	rgb( 0, 128, 0)	#008000
 GreenYellow	rgb(173, 255, 47)	#ADFF2F
 grey0	rgb( 0, 0, 0)	#000000
 grey100	rgb(255, 255, 255)	#FFFFFF
-grey100	rgb(255, 255, 255)	#FFFFFF
 grey10	rgb( 26, 26, 26)	#1A1A1A
 grey11	rgb( 28, 28, 28)	#1C1C1C
 grey12	rgb( 31, 31, 31)	#1F1F1F

@@ -1,5 +1,11 @@
 #!/bin/zsh
 
+# Default color scheme for svg
+# top color				#729fcf
+# buttom color			#6194cb
+# border buttom color	#3465a4
+COLOR_SCHEME_INI=('#729fcf' '#6194cb' '#3465a4')
+
 # paths for images to colorize
 RECOLOR_PATHS=(
 actions/add-folder-to-archive.png
@@ -28,6 +34,5 @@ COMPOSITE_PATHS=(actions/folder-new.png)
 PART1_PATHS=(places/folder.png)
 PART2_PATHS=(stock/flash_folder.png)
 
-color_scheme_ini_xpm=folder_color_scheme_ini.xpm
-
+export COLOR_SCHEME_INI
 export RECOLOR_PATHS COMPOSITE_PATHS PART1_PATHS PART2_PATHS
