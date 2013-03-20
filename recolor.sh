@@ -33,6 +33,14 @@ default_color_map=($(grep -o 'c [#0-9a-ZA-Z]*"' foo.xpm | cut -d' ' -f2 | cut -d
 
 # steps :
 ##########
+alpha() {
+if [[ $3 > $2 ]]
+then
+echo $(((200*$3-200*$2+100*$1-100*$3)/($1-$2)))
+else
+echo $((100 * $3 / $2))
+fi
+}
 
 hexacv() {
 	for i
@@ -65,6 +73,11 @@ convert $1 -type GrayScaleMatte $1
 }
 
 recolor() {
+#echo $BC_hsv[2] $CRef_hsv[2]
+#alpha 100 $BC_hsv[2] $CRef_hsv[2]
+#alpha 255 $BC_hsv[3] $CRef_hsv[3]
+modulate_saturation=$(alpha 100 $BC_hsv[2] $CRef_hsv[2])
+modulate_brighness=$(alpha 255 $BC_hsv[3] $CRef_hsv[3])
 convert $1 -define modulate:colorspace=HSB -modulate $modulate_brighness,$modulate_saturation,$modulate_hue $1
 }
 
@@ -220,6 +233,8 @@ esac
 echo $modulate_hue
 case $arg in
 c|f|F|G|h)
+	BC_hsv=($(./hexa_to_hsv $buttom_color))
+	CRef_hsv=($(./hexa_to_hsv $CRef))
 	color_scheme=($(recolor_xpm $color_scheme_ini))
 	i=1; set $color_scheme
 	for color; do COLOR_SCHEME[i]="'#$color'"; (( i++ )); done
