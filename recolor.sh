@@ -28,7 +28,6 @@ color_pick() {
 # pick up colors in images
 convert 32x32/actions/folder.png  folder.xpm
 default_color_map=($(grep -o 'c [#0-9a-ZA-Z]*"' foo.xpm | cut -d' ' -f2 | cut -d\" -f1 | grep -v 'None'))
-#echo $default_color_map
 }
 
 # steps :
@@ -129,6 +128,15 @@ composite $part2_paths[i] $part1_paths[i] $composite_path
 done
 }
 
+modulate_hue() {
+if [[ $DSTHUE > $SRCHUE ]]
+then
+modulate_hue=$(( ($DSTHUE - $SRCHUE) * 100/180 + 100 ))
+else
+modulate_hue=$(( ($DSTHUE - $SRCHUE) * 100/180 + 300 ))
+fi
+}
+
 # options
 ##########
 
@@ -149,11 +157,11 @@ ARGUMENTS :
 	-c <color> : by name or hexadecimal <Br>=Brown
 	-G <brightness> : convert image to grayscale and modulate brightness
 	-G : convert image to grayscale
-	-h <hue-angle> : modulate hue angle
+	-h <hue-angle> / <src-hue,dst-hue> : modulate hue angle or hue source, destination.
 	-s <saturation> : modulate saturation (0 to 200)
 OPTIONS :
 	-B : modulate brightness from -c arg.
-	-f <tint> : fill color (-c) tint (0 to 100)
+	-f <-c> <tint> : fill color tint (0 to 100)
 	-F : fill color tint=100
 	-H : modulate hue from -c arg.
 	-O : compose icons with composite function
@@ -180,7 +188,17 @@ do
 	F)	recolor_png=color; tint=100	;;
 	g)	arg=g; modulate_brightness=$OPTARG; recolor_png=discolor ;;
 	G)	arg=G; recolor_png=discolor	;;
-	h)	arg=m; modulate_hue=$OPTARG ;;
+	h)	arg=m
+		HUES=$(expr $OPTARG : '\([,0-9]*\)')
+		if expr $OPTARG : '\(.*,.*\)' > /dev/null
+		then
+			SRCHUE=$(echo $HUES | cut -d, -f 1)
+			DSTHUE=$(echo $HUES | cut -d, -f 2)
+			modulate_hue
+		else
+			modulate_hue=$HUES
+		fi
+		;;
 	H)	H='TRUE' ;;
 	O)	composite='TRUE' ;;
 	p)	source $OPTARG; data_file="$OPTARG" ;;
@@ -238,23 +256,23 @@ c|g|G|m)
 	then
 		if [[ $H == 'FALSE' ]] && [[ $S == 'FALSE' ]] && [[ $B == 'FALSE' ]]
 		then
-		H='TRUE'; S='TRUE'; B='TRUE'
+			H='TRUE'; S='TRUE'; B='TRUE'
 		fi
 		BC_hsl=($(./colorcv $buttom_color -hsl))
 		CRef_hsl=($(./colorcv $CRef -hsl))
+		SRCHUE=$BC_hsl[1]
+		DSTHUE=$CRef_hsl[1]
 		if [[ $H == 'TRUE' ]]
 		then
-			hue_angle=$(./rotate $buttom_color $CRef -h)
-			modulate_hue=$(( ( $hue_angle * 100/180 ) + 100 ))
+			modulate_hue
 		fi
 		if [[ $S == 'TRUE' ]]
 		then
-		modulate_saturation=$(alpha 100 $BC_hsl[2] $CRef_hsl[2])
-		echo $modulate_saturation
+			modulate_saturation=$(alpha 100 $BC_hsl[2] $CRef_hsl[2])
 		fi
 		if [[ $B == 'TRUE' ]]
 		then
-		modulate_brightness=$(alpha 100 $BC_hsl[3] $CRef_hsl[3])
+			modulate_brightness=$(alpha 100 $BC_hsl[3] $CRef_hsl[3])
 		fi
 	fi
 
@@ -269,7 +287,6 @@ c|g|G|m)
 		png_recolor_paths=($(make_paths $png_subdirs))
 		svg_recolor_paths=($(make_paths $svg_subdirs | sed 's/.png/.svg/g')) 
 	fi
-	echo $modulate_hue
 	recolor_path $recolor_png $png_recolor_paths
 	case $arg in
 	g)	recolor_path recolor $png_recolor_paths
