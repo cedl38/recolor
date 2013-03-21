@@ -9,8 +9,8 @@ TODO
 archives/*
 screenshots/*
 
-# exec
-hexa_to_hsv
+# binaries
+colorcv
 rotate
 
 # auto-generated files

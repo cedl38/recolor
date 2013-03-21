@@ -33,10 +33,14 @@ default_color_map=($(grep -o 'c [#0-9a-ZA-Z]*"' foo.xpm | cut -d' ' -f2 | cut -d
 
 # steps :
 ##########
+
+
+# (b-a)/(p1-a) == (y-x) (p2-x)
+# x = (p1*x - b*x + b*p2 - a*p2)/(p1 - a)
 alpha() {
 if [[ $3 > $2 ]]
 then
-echo $(((200*$3-200*$2+100*$1-100*$3)/($1-$2)))
+echo $(( ($1*100 - $3*100 + $3*200 - $2*200) / ($1 - $2) ))
 else
 echo $((100 * $3 / $2))
 fi
@@ -73,7 +77,7 @@ convert $1 -type GrayScaleMatte $1
 }
 
 recolor() {
-convert $1 -define modulate:colorspace=HSB -modulate $modulate_brightness,$modulate_saturation,$modulate_hue $1
+convert $1 -modulate $modulate_brightness,$modulate_saturation,$modulate_hue $1
 }
 
 substitute_color() {
@@ -236,21 +240,21 @@ c|g|G|m)
 		then
 		H='TRUE'; S='TRUE'; B='TRUE'
 		fi
-		BC_hsv=($(./hexa_to_hsv $buttom_color))
-		CRef_hsv=($(./hexa_to_hsv $CRef))
+		BC_hsl=($(./colorcv $buttom_color -hsl))
+		CRef_hsl=($(./colorcv $CRef -hsl))
 		if [[ $H == 'TRUE' ]]
 		then
-			hue_angle=$(./rotate $buttom_color $CRef)
+			hue_angle=$(./rotate $buttom_color $CRef -h)
 			modulate_hue=$(( ( $hue_angle * 100/180 ) + 100 ))
 		fi
 		if [[ $S == 'TRUE' ]]
 		then
-		modulate_saturation=$(alpha 100 $BC_hsv[2] $CRef_hsv[2])
+		modulate_saturation=$(alpha 100 $BC_hsl[2] $CRef_hsl[2])
 		echo $modulate_saturation
 		fi
 		if [[ $B == 'TRUE' ]]
 		then
-		modulate_brightness=$(alpha 255 $BC_hsv[3] $CRef_hsv[3])
+		modulate_brightness=$(alpha 100 $BC_hsl[3] $CRef_hsl[3])
 		fi
 	fi
 
