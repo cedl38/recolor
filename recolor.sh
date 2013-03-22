@@ -12,6 +12,7 @@ modulate_brightness=100
 modulate_saturation=100
 png_subdirs=(16x16 22x22 32x32)
 svg_subdirs=(scalable)
+part2_subdir=
 SUBDIRS=($png_subdirs $svg_subdirs)
 
 make_paths() {
@@ -123,7 +124,7 @@ compose_images() {
 i=1
 for composite_path
 do
-composite $part2_paths[i] $part1_paths[i] $composite_path
+composite $part2_dir/$part2_paths[i] $part1_paths[i] $composite_path
 (( i++ ))
 done
 }
@@ -178,7 +179,7 @@ source data_ini
 composite='FALSE'
 H='FALSE'; S='FALSE'; B='FALSE'
 
-while getopts b:Bc:Cf:Fg:Gh:HOp:s:S opt
+while getopts b:Bc:f:Fg:Gh:HOp:s:S opt
 do
 	case $opt in
 	b)	arg=m; modulate_brightness=$OPTARG ;;
@@ -215,6 +216,7 @@ then
 fi
 
 MAIN_DIR=$(pwd)
+
 shift $(($OPTIND -1))
 
 if [[ $2 == '' ]]
@@ -230,8 +232,8 @@ then
 	then
 		# load generated data file if exist
 		data_file="$IMAGE_DIR_OUT/data"
-		source $IMAGE_DIR_OUT/data
-		COLOR_SCHEME_INI=$COLOR_SCHEME
+		source $data_file
+		COLOR_SCHEME_INI=($COLOR_SCHEME)
 	fi
 else
 	# (re)load IMAGE_DIR_OUT
@@ -247,11 +249,11 @@ fi
 
 case $arg in
 c|g|G|m)
+
 	color_scheme_ini=($(hexacv $COLOR_SCHEME_INI))
 	echo "default color scheme : $COLOR_SCHEME_INI"
 	set $color_scheme_ini
 	top_color=$1; buttom_color=$2; border_color=$3
-
 	if [[ $arg == 'c' ]]
 	then
 		if [[ $H == 'FALSE' ]] && [[ $S == 'FALSE' ]] && [[ $B == 'FALSE' ]]
@@ -313,15 +315,15 @@ esac
 if [[ $composite == 'TRUE' ]]
 then
 	cd $IMAGE_DIR_OUT
+	part2_dir=stock
 	if [[ $COMPOSITE_PATHS == '' ]]
 	then
 	echo "compose images : $IMAGE_DIR_OUT..."
 	part1_paths=($(find **/*.png -type f))
 	composite_paths=$IMAGE_DIR_OUT
-	part2_dir=stock
 	cd $part2_dir
 	part2_paths=($(find **/*.png -type f))
-	cd ../$IMAGE_DIR_OUT
+	cd -
 	else
 	echo "compose images : $png_subdirs..."
 	recolor_paths=$COMPOSITE_PATHS
@@ -329,7 +331,9 @@ then
 	recolor_paths=$PART1_PATHS
 	part1_paths=($(make_paths $png_subdirs))
 	recolor_paths=$PART2_PATHS
+	cd $part2_dir
 	part2_paths=($(make_paths $png_subdirs))
+	cd -
 	fi
 	compose_images $composite_paths
 fi
