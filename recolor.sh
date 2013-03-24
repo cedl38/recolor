@@ -228,10 +228,10 @@ then
 	IMAGE_DIR_OUT=$1
 	fi
 	# recursive functionality
-	if [[ $data_file == 'data_ini' ]] && [[ -f $IMAGE_DIR_OUT/data ]]
+	if [[ $data_file == 'data_ini' ]] && [[ -f $IMAGE_DIR_OUT/out.dat ]]
 	then
 		# load generated data file if exist
-		data_file="$IMAGE_DIR_OUT/data"
+		data_file="$IMAGE_DIR_OUT/out.dat"
 		source $data_file
 		COLOR_SCHEME_INI=($COLOR_SCHEME)
 	fi
@@ -306,7 +306,7 @@ c|g|G|m)
 	i=1; set $color_scheme
 	for color; do COLOR_SCHEME[i]="'#$color'"; (( i++ )); done
 	echo "new color scheme : $COLOR_SCHEME"
-	sed "s/COLOR_SCHEME_INI=(.*)/COLOR_SCHEME=($COLOR_SCHEME)/" $data_file > $IMAGE_DIR_OUT/data
+	sed "s/COLOR_SCHEME_INI=(.*)/COLOR_SCHEME=($COLOR_SCHEME)/" $data_file > $IMAGE_DIR_OUT/out.dat
 	cd -
 
 	recolor_path substitute_color $svg_recolor_paths
