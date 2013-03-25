@@ -219,13 +219,23 @@ MAIN_DIR=$(pwd)
 
 shift $(($OPTIND -1))
 
+if [[ $RECOLOR_PATHS == '' ]]
+then
+	svg_recolor_paths=($(find **/*.svg -type f))
+	png_recolor_paths=($(find **/*.png -type f))
+else
+	recolor_paths=$RECOLOR_PATHS
+	png_recolor_paths=($(make_paths $png_subdirs))
+	svg_recolor_paths=($(make_paths $svg_subdirs | sed 's/.png/.svg/g'))
+fi
+
 if [[ $2 == '' ]]
 then
 	if [[ $1 == '' ]]
 	then
 	IMAGE_DIR_OUT=$MAIN_DIR/cache
 	else
-	IMAGE_DIR_OUT=$1
+	IMAGE_DIR_OUT=$(realpath $1)
 	fi
 	# recursive functionality
 	if [[ $data_file == 'data_ini' ]] && [[ -f $IMAGE_DIR_OUT/out.dat ]]
@@ -237,13 +247,14 @@ then
 	fi
 else
 	# (re)load IMAGE_DIR_OUT
-	IMAGE_DIR_IN=$1
-	IMAGE_DIR_OUT=$2
-	set $SUBDIRS
-	for subdir
+	IMAGE_DIR_IN=$(realpath $1)
+	IMAGE_DIR_OUT=$(realpath $2)
+	set $png_recolor_paths $svg_recolor_paths
+	for recolor_path
 	do
-	rm -r -f $IMAGE_DIR_OUT/$subdir
-	cp -r -f $IMAGE_DIR_IN/$subdir $IMAGE_DIR_OUT
+		rm -r -f $IMAGE_DIR_OUT/$recolor_path
+		mkdir -p $IMAGE_DIR_OUT/$(dirname $recolor_path)
+		cp -r -f $IMAGE_DIR_IN/$recolor_path $IMAGE_DIR_OUT/$recolor_path
 	done
 fi
 
@@ -280,15 +291,6 @@ c|g|G|m)
 
 	cd $IMAGE_DIR_OUT
 	echo "convert images : $SUBDIRS..."
-	if [[ $RECOLOR_PATHS == '' ]]
-	then
-		svg_recolor_paths=($(find **/*.svg -type f))
-		png_recolor_paths=($(find **/*.png -type f))
-	else
-		recolor_paths=$RECOLOR_PATHS
-		png_recolor_paths=($(make_paths $png_subdirs))
-		svg_recolor_paths=($(make_paths $svg_subdirs | sed 's/.png/.svg/g')) 
-	fi
 	recolor_path $recolor_png $png_recolor_paths
 	case $arg in
 	g)	recolor_path recolor $png_recolor_paths
