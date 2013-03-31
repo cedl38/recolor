@@ -65,7 +65,7 @@ fi
 }
 
 color() {
-convert $1 -fill "#$CRefOut" -tint $tint $1
+convert $1 $negate -fill "#$CRefOut" $TintingMod $tint $1
 }
 
 discolor() {
@@ -73,7 +73,7 @@ convert $1 -type GrayScaleMatte $1
 }
 
 recolor() {
-convert $1 -modulate $modulate_brightness,$modulate_saturation,$modulate_hue $1
+convert $1 $negate -modulate $modulate_brightness,$modulate_saturation,$modulate_hue $1
 }
 
 substitute_color() {
@@ -158,13 +158,16 @@ ARGUMENTS :
 	-s <saturation> : modulate saturation (0 to 200)
 OPTIONS :
 	-B : modulate brightness from -c arg.
-	-f <tint> <-c> : fill color tint (0 to 100)
-	-F : fill color tint=100
+	-f <colorize> : fill color (0 to 100)
+	-F : fill color colorize=100
 	-H : modulate hue from -c arg.
+	-N : negate image
 	-O : compose icons with composite function
 	-p <paths-lists> : file contain list of pathname parameters
 	-S : modulate saturation from -c arg.
-"
+	-t <tint> : fill color midtone tint (0 to 100)
+	-T : fill color tint=100
+	"
 }
 
 # default recolor function for png files
@@ -177,7 +180,7 @@ H='FALSE'; S='FALSE'; B='FALSE'
 negate=''
 arg=c
 
-while getopts b:Bc:f:Fg:Gh:HOp:s:S opt
+while getopts b:Bc:f:Fg:Gh:HNOp:s:St:T opt
 do
 	case $opt in
 	b)	arg=m; modulate_brightness=$OPTARG ;;
@@ -192,8 +195,8 @@ do
 			CRefOut=($(color_value $CRefs))
 		fi
 		;;
-	f)	recolor_png=color; tint=$OPTARG ;;
-	F)	recolor_png=color; tint=100 ;;
+	f)	recolor_png=color; TintingMod='-colorize'; tint=$OPTARG ;;
+	F)	recolor_png=color; TintingMod='-colorize'; tint=100 ;;
 	g)	arg=g; modulate_brightness=$OPTARG; recolor_png=discolor ;;
 	G)	arg=G; recolor_png=discolor ;;
 	h)	arg=m
@@ -208,6 +211,7 @@ do
 		fi
 		;;
 	H)	H='TRUE' ;;
+	N)	negate='-negate' ;;
 	O)	composite='TRUE' ;;
 	p)	source $OPTARG; data_file="$OPTARG"
 		CRefIn=($(color_value $CREF_IN))
@@ -215,6 +219,8 @@ do
 		;;
 	s)	arg=m; modulate_saturation=$OPTARG ;;
 	S)	S='TRUE' ;;
+	t)	recolor_png=color; TintingMod='-tint'; tint=$OPTARG ;;
+	T)	recolor_png=color; TintingMod='-tint'; tint=100 ;;
 	\?) show_help; exit 1 ;;
 	esac
 done
@@ -294,7 +300,7 @@ c|g|G|m)
 	echo "default color scheme : $COLOR_SCHEME_INI"
 
 	set $color_scheme_ini
-	if [[ $arg == 'c' ]]
+	if [[ $arg == 'c' ]] 
 	then
 		if [[ $H == 'FALSE' ]] && [[ $S == 'FALSE' ]] && [[ $B == 'FALSE' ]]
 		then
