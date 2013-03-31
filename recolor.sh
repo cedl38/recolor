@@ -317,7 +317,7 @@ c|g|G|m)
 	color_scheme=($(recolor_xpm $color_scheme_ini))
 
 	case $arg in
-	g)	$recolor_png=recolor
+	g)	recolor_png=recolor
 		color_scheme=($(recolor_xpm $color_scheme))
 		recolor_path recolor $png_recolor_paths
 	esac
