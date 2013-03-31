@@ -6,13 +6,12 @@ set -e
 
 # parameters
 #############
-CRef='000000'
+CRefOut='000000'
 modulate_hue=100
 modulate_brightness=100
 modulate_saturation=100
 png_subdirs=(16x16 22x22 32x32)
 svg_subdirs=(scalable)
-part2_subdir=
 SUBDIRS=($png_subdirs $svg_subdirs)
 
 make_paths() {
@@ -27,7 +26,7 @@ echo $paths
 
 color_pick() {
 # pick up colors in images
-convert 32x32/actions/folder.png  folder.xpm
+convert 32x32/actions/folder.png folder.xpm
 default_color_map=($(grep -o 'c [#0-9a-ZA-Z]*"' foo.xpm | cut -d' ' -f2 | cut -d\" -f1 | grep -v 'None'))
 }
 
@@ -69,7 +68,7 @@ fi
 }
 
 color() {
-convert $1 -fill "#$CRef" -tint $tint $1
+convert $1 -fill "#$CRefOut" -tint $tint $1
 }
 
 discolor() {
@@ -143,10 +142,10 @@ fi
 
 color_value() {
 case $1 in;
-Br)				CRef='DD9A3A'	;;
-\#*)			CRef="${1:1:6}" 	;;
-[a-z][a-z1-9]*)	CRef=$(grep -P "$1\t" colormap | cut -f3 | cut -d'#' -f2) ;;
-*) echo "Invalid color"; exit 1	;;
+Br)			 	CRefOut='DD9A3A'	;;
+\#*)			CRefOut="${1:1:6}"	;;
+[a-z][a-z1-9]*)	CRefOut=$(grep -P "$1\t" colormap | cut -f3 | cut -d'#' -f2) ;;
+*)				echo "Invalid color"; exit 1 ;;
 esac
 }
 
@@ -155,14 +154,14 @@ echo "
 usage : [OPTIONS] [ARG] <dir-in> <dir-out>
 ARGUMENTS :
 	-b <brightness> : modulate brightness (0 to 200)
-	-c <color> : by name or hexadecimal <Br>=Brown
-	-G <brightness> : convert image to grayscale and modulate brightness
+	-c <color-dest> : destination color by name or hexadecimal. <Br>=Brown
+	-g <brightness> : convert image to grayscale and modulate brightness
 	-G : convert image to grayscale
 	-h <hue-angle> / <src-hue,dst-hue> : modulate hue angle or hue source, destination.
 	-s <saturation> : modulate saturation (0 to 200)
 OPTIONS :
 	-B : modulate brightness from -c arg.
-	-f <-c> <tint> : fill color tint (0 to 100)
+	-f <tint> <-c> : fill color tint (0 to 100)
 	-F : fill color tint=100
 	-H : modulate hue from -c arg.
 	-O : compose icons with composite function
@@ -185,10 +184,10 @@ do
 	b)	arg=m; modulate_brightness=$OPTARG ;;
 	B)	B='TRUE' ;;
 	c)	arg=c; color_value $OPTARG ;;
-	f)	recolor_png=color; tint=$OPTARG	;;
-	F)	recolor_png=color; tint=100	;;
+	f)	recolor_png=color; tint=$OPTARG ;;
+	F)	recolor_png=color; tint=100 ;;
 	g)	arg=g; modulate_brightness=$OPTARG; recolor_png=discolor ;;
-	G)	arg=G; recolor_png=discolor	;;
+	G)	arg=G; recolor_png=discolor ;;
 	h)	arg=m
 		HUES=$(expr $OPTARG : '\([,0-9]*\)')
 		if expr $OPTARG : '\(.*,.*\)' > /dev/null
@@ -205,7 +204,7 @@ do
 	p)	source $OPTARG; data_file="$OPTARG" ;;
 	s)	arg=m; modulate_saturation=$OPTARG ;;
 	S)	S='TRUE' ;;
-	\?)	show_help; exit 1 ;;
+	\?) show_help; exit 1 ;;
 	esac
 done
 
@@ -219,16 +218,7 @@ MAIN_DIR=$(pwd)
 
 shift $(($OPTIND -1))
 
-if [[ $RECOLOR_PATHS == '' ]]
-then
-	svg_recolor_paths=($(find **/*.svg -type f))
-	png_recolor_paths=($(find **/*.png -type f))
-else
-	recolor_paths=$RECOLOR_PATHS
-	png_recolor_paths=($(make_paths $png_subdirs))
-	svg_recolor_paths=($(make_paths $svg_subdirs | sed 's/.png/.svg/g'))
-fi
-
+reload='FALSE'
 if [[ $2 == '' ]]
 then
 	if [[ $1 == '' ]]
@@ -249,49 +239,76 @@ else
 	# (re)load IMAGE_DIR_OUT
 	IMAGE_DIR_IN=$(realpath $1)
 	IMAGE_DIR_OUT=$(realpath $2)
+	reload='TRUE'
+fi
+
+mkdir -p $IMAGE_DIR_OUT
+
+if [[ $RECOLOR_PATHS == '' ]]
+then
+	cd $IMAGE_DIR_IN
+	svg_recolor_paths=($(find . -name "*.svg" -type f | cut -d'/' -f2))
+	png_recolor_paths=($(find . -name "*.png" -type f))
+	cd -
+
+else
+	cd $IMAGE_DIR_OUT
+	recolor_paths=$RECOLOR_PATHS
+	png_recolor_paths=($(make_paths $png_subdirs))
+	svg_recolor_paths=($(make_paths $svg_subdirs | sed 's/.png/.svg/g'))
+	cd -
+fi
+
+case $reload in
+'TRUE')
 	set $png_recolor_paths $svg_recolor_paths
 	for recolor_path
 	do
 		rm -r -f $IMAGE_DIR_OUT/$recolor_path
 		mkdir -p $IMAGE_DIR_OUT/$(dirname $recolor_path)
-		cp -r -f $IMAGE_DIR_IN/$recolor_path $IMAGE_DIR_OUT/$recolor_path
+			if [[ -f $IMAGE_DIR_IN/$recolor_path ]]
+			then
+			cp -r -f $IMAGE_DIR_IN/$recolor_path $IMAGE_DIR_OUT/$recolor_path
+			fi
 	done
-fi
+esac
 
 case $arg in
 c|g|G|m)
 
 	color_scheme_ini=($(hexacv $COLOR_SCHEME_INI))
 	echo "default color scheme : $COLOR_SCHEME_INI"
+
 	set $color_scheme_ini
-	top_color=$1; buttom_color=$2; border_color=$3
+	CRefIn=$2
 	if [[ $arg == 'c' ]]
 	then
 		if [[ $H == 'FALSE' ]] && [[ $S == 'FALSE' ]] && [[ $B == 'FALSE' ]]
 		then
 			H='TRUE'; S='TRUE'; B='TRUE'
 		fi
-		BC_hsl=($(./colorcv $buttom_color -hsl))
-		CRef_hsl=($(./colorcv $CRef -hsl))
-		SRCHUE=$BC_hsl[1]
-		DSTHUE=$CRef_hsl[1]
+		CRefIn_hsl=($(./colorcv $CRefIn -hsl))
+		CRefOut_hsl=($(./colorcv $CRefOut -hsl))
+		SRCHUE=$CRefIn_hsl[1]
+		DSTHUE=$CRefOut_hsl[1]
 		if [[ $H == 'TRUE' ]]
 		then
 			modulate_hue
 		fi
 		if [[ $S == 'TRUE' ]]
 		then
-			modulate_saturation=$(alpha 100 $BC_hsl[2] $CRef_hsl[2])
+			modulate_saturation=$(alpha 100 $CRefIn_hsl[2] $CRefOut_hsl[2])
 		fi
 		if [[ $B == 'TRUE' ]]
 		then
-			modulate_brightness=$(alpha 100 $BC_hsl[3] $CRef_hsl[3])
+			modulate_brightness=$(alpha 100 $CRefIn_hsl[3] $CRefOut_hsl[3])
 		fi
 	fi
 
 	cd $IMAGE_DIR_OUT
 	echo "convert images : $SUBDIRS..."
 	recolor_path $recolor_png $png_recolor_paths
+
 	case $arg in
 	g)	recolor_path recolor $png_recolor_paths
 	esac
