@@ -4,15 +4,12 @@ zmodload zsh/mathfunc
 # dependencies : imagemagick >= v6.5.3, libpng, librsvg, libxml
 set -e
 
-# parameters
-#############
-CRefOut='000000'
+# default parameters
+#####################
+source data_ini
 modulate_hue=100
 modulate_brightness=100
 modulate_saturation=100
-png_subdirs=(16x16 22x22 32x32)
-svg_subdirs=(scalable)
-SUBDIRS=($png_subdirs $svg_subdirs)
 
 make_paths() {
 paths=''
@@ -259,7 +256,7 @@ else
 fi
 
 mkdir -p $IMAGE_DIR_OUT
-
+SUBDIRS=($PNG_SUBDIRS $SVG_SUBDIRS)
 if [[ $RECOLOR_PATHS == '' ]]
 then
 	cd $IMAGE_DIR_IN
@@ -270,8 +267,8 @@ then
 else
 	cd $IMAGE_DIR_OUT
 	recolor_paths=$RECOLOR_PATHS
-	png_recolor_paths=($(make_paths $png_subdirs))
-	svg_recolor_paths=($(make_paths $svg_subdirs | sed 's/.png/.svg/g'))
+	png_recolor_paths=($(make_paths $PNG_SUBDIRS))
+	svg_recolor_paths=($(make_paths $SVG_SUBDIRS | sed 's/.png/.svg/g'))
 	cd -
 fi
 
@@ -362,14 +359,14 @@ then
 	part2_paths=($(find **/*.png -type f))
 	cd -
 	else
-	echo "compose images : $png_subdirs..."
+	echo "compose images : $PNG_SUBDIRS..."
 	recolor_paths=$COMPOSITE_PATHS
-	composite_paths=($(make_paths $png_subdirs))
+	composite_paths=($(make_paths $PNG_SUBDIRS))
 	recolor_paths=$PART1_PATHS
-	part1_paths=($(make_paths $png_subdirs))
+	part1_paths=($(make_paths $PNG_SUBDIRS))
 	recolor_paths=$PART2_PATHS
 	cd $part2_dir
-	part2_paths=($(make_paths $png_subdirs))
+	part2_paths=($(make_paths $PNG_SUBDIRS))
 	cd -
 	fi
 	compose_images $composite_paths
