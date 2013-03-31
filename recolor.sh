@@ -142,9 +142,9 @@ fi
 
 color_value() {
 case $1 in;
-Br)			 	CRefOut='DD9A3A'	;;
-\#*)			CRefOut="${1:1:6}"	;;
-[a-z][a-z1-9]*)	CRefOut=$(grep -P "$1\t" colormap | cut -f3 | cut -d'#' -f2) ;;
+Br)			 	echo 'DD9A3A'	;;
+\#*)			echo "${1:1:6}"	;;
+[a-z][a-z1-9]*)	echo $(grep -P "$1\t" colormap | cut -f3 | cut -d'#' -f2) ;;
 *)				echo "Invalid color"; exit 1 ;;
 esac
 }
@@ -154,10 +154,10 @@ echo "
 usage : [OPTIONS] [ARG] <dir-in> <dir-out>
 ARGUMENTS :
 	-b <brightness> : modulate brightness (0 to 200)
-	-c <color-dest> : destination color by name or hexadecimal. <Br>=Brown
+	-c <color-ref-in>,<color-ref-out> | <color-ref-out> : initial,destination color by name or hexadecimal. <Br>=Brown
 	-g <brightness> : convert image to grayscale and modulate brightness
 	-G : convert image to grayscale
-	-h <hue-angle> / <src-hue,dst-hue> : modulate hue angle or hue source, destination.
+	-h <hue-angle> | <src-hue,dst-hue> : modulate hue angle or hue source, destination.
 	-s <saturation> : modulate saturation (0 to 200)
 OPTIONS :
 	-B : modulate brightness from -c arg.
@@ -177,13 +177,24 @@ data_file='data_ini'
 source data_ini
 composite='FALSE'
 H='FALSE'; S='FALSE'; B='FALSE'
+negate=''
+arg=c
 
 while getopts b:Bc:f:Fg:Gh:HOp:s:S opt
 do
 	case $opt in
 	b)	arg=m; modulate_brightness=$OPTARG ;;
 	B)	B='TRUE' ;;
-	c)	arg=c; color_value $OPTARG ;;
+	c)	arg=c
+		CRefs=$(expr $OPTARG : '\([,0-9]*\)')
+		if expr $OPTARG : '\(.*,.*\)' > /dev/null
+		then
+			CRefIn=($(color_value $(echo $CRefs | cut -d, -f 1)))
+			CRefOut=($(color_value $(echo $CRefs | cut -d, -f 2)))
+		else
+			CRefOut=($(color_value $CRefs))
+		fi
+		;;
 	f)	recolor_png=color; tint=$OPTARG ;;
 	F)	recolor_png=color; tint=100 ;;
 	g)	arg=g; modulate_brightness=$OPTARG; recolor_png=discolor ;;
@@ -201,7 +212,10 @@ do
 		;;
 	H)	H='TRUE' ;;
 	O)	composite='TRUE' ;;
-	p)	source $OPTARG; data_file="$OPTARG" ;;
+	p)	source $OPTARG; data_file="$OPTARG"
+		CRefIn=($(color_value $CREF_IN))
+		CRefOut=($(color_value $CREF_OUT))
+		;;
 	s)	arg=m; modulate_saturation=$OPTARG ;;
 	S)	S='TRUE' ;;
 	\?) show_help; exit 1 ;;
@@ -234,6 +248,8 @@ then
 		data_file="$IMAGE_DIR_OUT/out.dat"
 		source $data_file
 		COLOR_SCHEME_INI=($COLOR_SCHEME)
+		CRefIn=($(hexacv $CREF_IN))
+		CRefOut=($(hexacv $CREF_OUT))
 	fi
 else
 	# (re)load IMAGE_DIR_OUT
@@ -261,6 +277,7 @@ fi
 
 case $reload in
 'TRUE')
+
 	set $png_recolor_paths $svg_recolor_paths
 	for recolor_path
 	do
@@ -280,7 +297,6 @@ c|g|G|m)
 	echo "default color scheme : $COLOR_SCHEME_INI"
 
 	set $color_scheme_ini
-	CRefIn=$2
 	if [[ $arg == 'c' ]]
 	then
 		if [[ $H == 'FALSE' ]] && [[ $S == 'FALSE' ]] && [[ $B == 'FALSE' ]]
@@ -325,7 +341,9 @@ c|g|G|m)
 	i=1; set $color_scheme
 	for color; do COLOR_SCHEME[i]="'#$color'"; (( i++ )); done
 	echo "new color scheme : $COLOR_SCHEME"
-	sed "s/COLOR_SCHEME_INI=(.*)/COLOR_SCHEME=($COLOR_SCHEME)/" $data_file > $IMAGE_DIR_OUT/out.dat
+	sed "s/COLOR_SCHEME_INI=(.*)/COLOR_SCHEME=($COLOR_SCHEME)/" $data_file > tmp.dat
+	mv tmp.dat $IMAGE_DIR_OUT/out.dat
+	sed -i "s/CREF_IN='.*'/CREF_IN=\'\#$CRefOut\'/" $IMAGE_DIR_OUT/out.dat
 	cd -
 
 	recolor_path substitute_color $svg_recolor_paths
