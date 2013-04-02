@@ -90,9 +90,9 @@ set $color_scheme_ini
 recolor_xpm() {
 for i
 do
-	sed "s/#0*/#$i/" ini.xpm > color.xpm
-	$recolor_png color.xpm
-	color=($(grep -o 'c [#0-9a-ZA-Z]*"' $MAIN_DIR/color.xpm | grep -v 'None' | cut -d' ' -f2 | cut -d\" -f1))
+	sed "s/#0*/#$i/" ini.xpm > /tmp/recolor_color.xpm
+	$recolor_png /tmp/recolor_color.xpm
+	color=($(grep -o 'c [#0-9a-ZA-Z]*"' /tmp/recolor_color.xpm | grep -v 'None' | cut -d' ' -f2 | cut -d\" -f1))
 	if [[ "${color:0:1}" == '#' ]]
 	then
 		# workaround : convert color hexa 12 to 6 characters
@@ -344,8 +344,8 @@ c|g|G|m)
 	i=1; set $color_scheme
 	for color; do COLOR_SCHEME[i]="'#$color'"; (( i++ )); done
 	echo "new color scheme : $COLOR_SCHEME"
-	sed "s/COLOR_SCHEME_INI=(.*)/COLOR_SCHEME=($COLOR_SCHEME)/" $data_file > tmp.dat
-	mv tmp.dat $IMAGE_DIR_OUT/out.dat
+	sed "s/COLOR_SCHEME_INI=(.*)/COLOR_SCHEME=($COLOR_SCHEME)/" $data_file > /tmp/recolor_tmp.dat
+	mv /tmp/recolor_tmp.dat $IMAGE_DIR_OUT/out.dat
 	sed -i "s/CREF_IN='.*'/CREF_IN=\'\#$CRefOut\'/" $IMAGE_DIR_OUT/out.dat
 	cd -
 
