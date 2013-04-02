@@ -6,7 +6,7 @@ set -e
 
 # default parameters
 #####################
-source data_ini
+source ini.dat
 modulate_hue=100
 modulate_brightness=100
 modulate_saturation=100
@@ -172,9 +172,9 @@ OPTIONS :
 
 # default recolor function for png files
 recolor_png=recolor
-data_file='data_ini'
+data_file='ini.dat'
 # default data source
-source data_ini
+source ini.dat
 composite='FALSE'
 H='FALSE'; S='FALSE'; B='FALSE'
 negate=''
@@ -245,7 +245,7 @@ then
 	IMAGE_DIR_OUT=$(realpath $1)
 	fi
 	# recursive functionality
-	if [[ $data_file == 'data_ini' ]] && [[ -f $IMAGE_DIR_OUT/out.dat ]]
+	if [[ $data_file == 'ini.dat' ]] && [[ -f $IMAGE_DIR_OUT/out.dat ]]
 	then
 		# load generated data file if exist
 		data_file="$IMAGE_DIR_OUT/out.dat"
