@@ -1,0 +1,22 @@
+# Maintainer: Ced <cedl38@gmail.com>
+
+pkgname=recolor
+pkgver='junk'
+pkgrel=1
+pkgdesc="script to recolor both svg and png files."
+arch=('any')
+url=""
+license=('GPL3')
+depends=('imagemagick' 'zsh')
+source=(${pkgname}-${pkgver}.tar.gz)
+#sha256sums=('8e7227552c43b8a6b51cc7ccade2b31001776d2f1a6b8ba880271eff9e881af1')
+
+build () {
+	cd $srcdir/${pkgname}-${pkgver}
+	make
+}
+
+package() {
+	cd $srcdir/${pkgname}-${pkgver}
+	make DESTDIR="${pkgdir}/usr/local/share" install
+}
