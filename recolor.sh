@@ -136,6 +136,38 @@ modulate_hue=$(( ($DSTHUE - $SRCHUE) * 100/180 + 300 ))
 fi
 }
 
+modulate() {
+if [[ $arg == 'c' ]] 
+then
+	if [[ $H == 'FALSE' ]] && [[ $S == 'FALSE' ]] && [[ $B == 'FALSE' ]]
+	then
+		H='TRUE'; S='TRUE'; B='TRUE'
+	fi
+	CRefIn_hsl=($(./colorcv $1 -hsl))
+	CRefOut_hsl=($(./colorcv $2 -hsl))
+	SRCHUE=$CRefIn_hsl[1]
+	DSTHUE=$CRefOut_hsl[1]
+	if [[ $H == 'TRUE' ]]
+	then
+		modulate_hue
+	else
+		modulate_hue=100
+	fi
+	if [[ $S == 'TRUE' ]]
+	then
+		modulate_saturation=$(alpha 100 $CRefIn_hsl[2] $CRefOut_hsl[2])
+	else
+		modulate_saturation=100
+	fi
+	if [[ $B == 'TRUE' ]]
+	then
+		modulate_brightness=$(alpha 100 $CRefIn_hsl[3] $CRefOut_hsl[3])
+	else
+		modulate_brightness=100
+	fi
+fi
+}
+
 # options
 ##########
 
@@ -294,37 +326,15 @@ case $reload in
 	done
 esac
 
+# modulate arguments
 case $arg in
 c|g|G|m)
+	modulate $CRefIn $CRefOut
+esac
 
-	color_scheme_ini=($(hexacv $COLOR_SCHEME_INI))
-	echo "default color scheme : $COLOR_SCHEME_INI"
-
-	set $color_scheme_ini
-	if [[ $arg == 'c' ]] 
-	then
-		if [[ $H == 'FALSE' ]] && [[ $S == 'FALSE' ]] && [[ $B == 'FALSE' ]]
-		then
-			H='TRUE'; S='TRUE'; B='TRUE'
-		fi
-		CRefIn_hsl=($(./colorcv $CRefIn -hsl))
-		CRefOut_hsl=($(./colorcv $CRefOut -hsl))
-		SRCHUE=$CRefIn_hsl[1]
-		DSTHUE=$CRefOut_hsl[1]
-		if [[ $H == 'TRUE' ]]
-		then
-			modulate_hue
-		fi
-		if [[ $S == 'TRUE' ]]
-		then
-			modulate_saturation=$(alpha 100 $CRefIn_hsl[2] $CRefOut_hsl[2])
-		fi
-		if [[ $B == 'TRUE' ]]
-		then
-			modulate_brightness=$(alpha 100 $CRefIn_hsl[3] $CRefOut_hsl[3])
-		fi
-	fi
-
+# recolor png
+case $arg in
+c|g|G|m)
 	cd $IMAGE_DIR_OUT
 	echo "convert images : $SUBDIRS..."
 	recolor_path $recolor_png $png_recolor_paths
@@ -332,6 +342,13 @@ c|g|G|m)
 	case $arg in
 	g)	recolor_path recolor $png_recolor_paths
 	esac
+esac
+
+# recolor svg
+case $arg in
+c|g|G|m)
+	echo "default color scheme : $COLOR_SCHEME_INI"
+	color_scheme_ini=($(hexacv $COLOR_SCHEME_INI))
 
 	cd $MAIN_DIR
 	color_scheme=($(recolor_xpm $color_scheme_ini))
