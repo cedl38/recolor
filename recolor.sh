@@ -6,6 +6,8 @@ set -e
 
 # default parameters
 #####################
+MAIN_DIR=$(dirname $(realpath $0))
+cd $MAIN_DIR
 source ini.dat
 modulate_hue=100
 modulate_brightness=100
@@ -230,8 +232,6 @@ if [[ $OPTIND == 1 ]]
 then
  show_help; exit 1;
 fi
-
-MAIN_DIR=$(pwd)
 
 shift $(($OPTIND -1))
 
