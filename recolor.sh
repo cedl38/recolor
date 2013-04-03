@@ -154,8 +154,8 @@ usage : [OPTIONS] [ARG] <dir-in> <dir-out>
 ARGUMENTS :
 	-b <brightness> : modulate brightness (0 to 200)
 	-c <color-ref-in>,<color-ref-out> | <color-ref-out> : initial,destination color by name or hexadecimal. <Br>=Brown
-	-g <brightness> : convert image to grayscale and modulate brightness
-	-G : convert image to grayscale
+	-g <brightness> : convert images to grayscale and modulate brightness
+	-G : convert images to grayscale
 	-h <hue-angle> | <src-hue,dst-hue> : modulate hue angle or hue source, destination.
 	-s <saturation> : modulate saturation (0 to 200)
 OPTIONS :
@@ -188,7 +188,7 @@ do
 	b)	arg=m; modulate_brightness=$OPTARG ;;
 	B)	B='TRUE' ;;
 	c)	arg=c
-		CRefs=$(expr $OPTARG : '\([,0-9]*\)')
+		CRefs=$(expr $OPTARG : '\([,#0-9a-zA-Z]*\)')
 		if expr $OPTARG : '\(.*,.*\)' > /dev/null
 		then
 			CRefIn=($(color_value $(echo $CRefs | cut -d, -f 1)))
@@ -261,6 +261,7 @@ else
 	reload='TRUE'
 fi
 
+# make paths
 mkdir -p $IMAGE_DIR_OUT
 SUBDIRS=($PNG_SUBDIRS $SVG_SUBDIRS)
 if [[ $RECOLOR_PATHS == '' ]]
@@ -278,9 +279,9 @@ else
 	cd -
 fi
 
+# reload path
 case $reload in
 'TRUE')
-
 	set $png_recolor_paths $svg_recolor_paths
 	for recolor_path
 	do
@@ -338,7 +339,6 @@ c|g|G|m)
 	case $arg in
 	g)	recolor_png=recolor
 		color_scheme=($(recolor_xpm $color_scheme))
-		recolor_path recolor $png_recolor_paths
 	esac
 
 	i=1; set $color_scheme
@@ -352,6 +352,7 @@ c|g|G|m)
 	recolor_path substitute_color $svg_recolor_paths
 esac
 
+# compose images
 if [[ $composite == 'TRUE' ]]
 then
 	cd $IMAGE_DIR_OUT
