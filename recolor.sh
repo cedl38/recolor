@@ -67,15 +67,15 @@ fi
 }
 
 color() {
-convert $1 $negate -fill "#$CRefOut" $TintingMod $tint $1
+convert $1 $imargs -fill "#$CRefOut" $TintingMod $tint $1
 }
 
 discolor() {
-convert $1 -type GrayScaleMatte $1
+convert $1 $imargs -type GrayScaleMatte $1
 }
 
 recolor() {
-convert $1 $negate -modulate $modulate_brightness,$modulate_saturation,$modulate_hue $1
+convert $1 $imargs -modulate $modulate_brightness,$modulate_saturation,$modulate_hue $1
 }
 
 substitute_color() {
@@ -189,13 +189,13 @@ ARGUMENTS :
 	-g <luminance> : convert images to grayscale and modulate luminance
 	-G : convert images to grayscale
 	-h <hue-angle> | <src-hue,dst-hue> : modulate hue angle or hue source, destination.
+	-i <'arguments'>: ImageMagick arguments
 	-s <saturation> : modulate saturation (0 to 200)
 OPTIONS :
 	-L : modulate luminance from -c arg.
 	-f <colorize> : fill color (0 to 100)
 	-F : fill color colorize=100
 	-H : modulate hue from -c arg.
-	-N : negate image
 	-O : compose icons with composite function
 	-p <paths-lists> : file contain list of pathname parameters
 	-S : modulate saturation from -c arg.
@@ -211,14 +211,12 @@ data_file='ini.dat'
 source ini.dat
 composite='FALSE'
 H='FALSE'; S='FALSE'; L='FALSE'
-negate=''
+imargs=''
 arg=c
 
 while getopts c:f:Fg:Gh:Hl:LNOp:s:St:T opt
 do
 	case $opt in
-	l)	arg=m; modulate_brightness=$OPTARG ;;
-	L)	L='TRUE' ;;
 	c)	arg=c
 		CRefs=$(expr $OPTARG : '\([,#0-9a-zA-Z]*\)')
 		if expr $OPTARG : '\(.*,.*\)' > /dev/null
@@ -245,7 +243,9 @@ do
 		fi
 		;;
 	H)	H='TRUE' ;;
-	N)	negate='-negate' ;;
+	i)	imargs=$OPTARG ;;
+	l)	arg=m; modulate_brightness=$OPTARG ;;
+	L)	L='TRUE' ;;
 	O)	composite='TRUE' ;;
 	p)	source $OPTARG; data_file="$OPTARG"
 		CRefIn=($(color_value $CREF_IN))
