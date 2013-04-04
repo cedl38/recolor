@@ -1,8 +1,8 @@
 #!/bin/zsh
 
 COLOR_SCHEME_INI=('#000000' '#000000' '#000000')
-CRefIn='#000000'
-CRefOut='#000000'
+CRefIn=''
+CRefOut=''
 
 # paths for images to colorize
 

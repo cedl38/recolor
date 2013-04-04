@@ -4,15 +4,6 @@ zmodload zsh/mathfunc
 # dependencies : imagemagick >= v6.5.3, libpng, librsvg, libxml
 set -e
 
-# default parameters
-#####################
-MAIN_DIR=$(dirname $(realpath $0))
-cd $MAIN_DIR
-source ini.dat
-modulate_hue=100
-modulate_brightness=100
-modulate_saturation=100
-
 make_paths() {
 paths=''
 for folder
@@ -66,16 +57,8 @@ echo $((100 * $3 / $2))
 fi
 }
 
-color() {
-convert $1 $imargs -fill "#$CRefOut" $TintingMod $tint $1
-}
-
-discolor() {
-convert $1 $imargs -type GrayScaleMatte $1
-}
-
 recolor() {
-convert $1 $imargs -modulate $modulate_brightness,$modulate_saturation,$modulate_hue $1
+convert $1 $imarg $1
 }
 
 substitute_color() {
@@ -93,7 +76,7 @@ recolor_xpm() {
 for i
 do
 	sed "s/#0*/#$i/" ini.xpm > /tmp/recolor_color.xpm
-	$recolor_png /tmp/recolor_color.xpm
+	recolor /tmp/recolor_color.xpm
 	color=($(grep -o 'c [#0-9a-ZA-Z]*"' /tmp/recolor_color.xpm | grep -v 'None' | cut -d' ' -f2 | cut -d\" -f1))
 	if [[ "${color:0:1}" == '#' ]]
 	then
@@ -136,17 +119,16 @@ modulate_hue=$(( ($DSTHUE - $SRCHUE) * 100/180 + 300 ))
 fi
 }
 
-modulate() {
-if [[ $arg == 'c' ]] 
-then
+modulate_arg() {
 	if [[ $H == 'FALSE' ]] && [[ $S == 'FALSE' ]] && [[ $L == 'FALSE' ]]
 	then
 		H='TRUE'; S='TRUE'; L='TRUE'
 	fi
-	CRefIn_hsl=($(./colorcv $1 -hsl))
-	CRefOut_hsl=($(./colorcv $2 -hsl))
-	SRCHUE=$CRefIn_hsl[1]
-	DSTHUE=$CRefOut_hsl[1]
+		CRefIn_hsl=($(./colorcv $1 -hsl))
+		CRefOut_hsl=($(./colorcv $2 -hsl))
+		SRCHUE=$CRefIn_hsl[1]
+		DSTHUE=$CRefOut_hsl[1]
+
 	if [[ $H == 'TRUE' ]]
 	then
 		modulate_hue
@@ -165,7 +147,6 @@ then
 	else
 		modulate_brightness=100
 	fi
-fi
 }
 
 # options
@@ -182,100 +163,77 @@ esac
 
 show_help() {
 echo "
-usage : [OPTIONS] [ARG] <dir-in> <dir-out>
+usage : <dir-in> [ImageMagick ARG1] [ARG] [OPTIONS] [ImageMagick ARG2] <dir-out>
+ImageMagick ARGUMENTS 1|2 : Convert argument from ImageMagick
 ARGUMENTS :
-	-l <luminance> : modulate luminance (0 to 200)
-	-c <color-ref-in>,<color-ref-out> | <color-ref-out> : initial,destination color by name or hexadecimal. <Br>=Brown
-	-g <luminance> : convert images to grayscale and modulate luminance
-	-G : convert images to grayscale
-	-h <hue-angle> | <src-hue,dst-hue> : modulate hue angle or hue source, destination.
-	-i <'arguments'>: ImageMagick arguments
-	-s <saturation> : modulate saturation (0 to 200)
+	-m <color-ref-in>,<color-ref-out> | <color-ref-out> : move color from initial,destination (name or hexadecimal value). <Br>=Brown
 OPTIONS :
-	-L : modulate luminance from -c arg.
-	-f <colorize> : fill color (0 to 100)
-	-F : fill color colorize=100
-	-H : modulate hue from -c arg.
+	-L : modulate luminance from -m arg.
+	-H : modulate hue from -m arg.
 	-O : compose icons with composite function
 	-p <paths-lists> : file contain list of pathname parameters
-	-S : modulate saturation from -c arg.
-	-t <tint> : fill color midtone tint (0 to 100)
-	-T : fill color tint=100
+	-S : modulate saturation from -m arg.
 	"
 }
 
-# default recolor function for png files
-recolor_png=recolor
-data_file='ini.dat'
+
+# default parameters
+#####################
+MAIN_DIR=$(dirname $(realpath $0))
 # default data source
-source ini.dat
+data_file='ini.dat'
+source $MAIN_DIR/ini.dat
 composite='FALSE'
 H='FALSE'; S='FALSE'; L='FALSE'
-imargs=''
-arg=c
+arg=''; imarg1=''; imarg2=''
 
-while getopts c:f:Fg:Gh:Hl:LNOp:s:St:T opt
+case $1 in
+-*)	IMAGE_DIR_IN='' ;;
+*)	IMAGE_DIR_IN=$(realpath $1) ; shift ;;
+esac
+
+# parse options
+until [[ $# = 0 ]]
 do
-	case $opt in
-	c)	arg=c
-		CRefs=$(expr $OPTARG : '\([,#0-9a-zA-Z]*\)')
-		if expr $OPTARG : '\(.*,.*\)' > /dev/null
-		then
-			CRefIn=($(color_value $(echo $CRefs | cut -d, -f 1)))
-			CRefOut=($(color_value $(echo $CRefs | cut -d, -f 2)))
-		else
-			CRefOut=($(color_value $CRefs))
-		fi
-		;;
-	f)	recolor_png=color; TintingMod='-colorize'; tint=$OPTARG ;;
-	F)	recolor_png=color; TintingMod='-colorize'; tint=100 ;;
-	g)	arg=g; modulate_brightness=$OPTARG; recolor_png=discolor ;;
-	G)	arg=G; recolor_png=discolor ;;
-	h)	arg=m
-		HUES=$(expr $OPTARG : '\([,0-9]*\)')
-		if expr $OPTARG : '\(.*,.*\)' > /dev/null
-		then
-			SRCHUE=$(echo $HUES | cut -d, -f 1)
-			DSTHUE=$(echo $HUES | cut -d, -f 2)
-			modulate_hue
-		else
-			modulate_hue=$HUES
-		fi
-		;;
-	H)	H='TRUE' ;;
-	i)	imargs=$OPTARG ;;
-	l)	arg=m; modulate_brightness=$OPTARG ;;
-	L)	L='TRUE' ;;
-	O)	composite='TRUE' ;;
-	p)	source $OPTARG; data_file="$OPTARG"
-		CRefIn=($(color_value $CREF_IN))
-		CRefOut=($(color_value $CREF_OUT))
-		;;
-	s)	arg=m; modulate_saturation=$OPTARG ;;
-	S)	S='TRUE' ;;
-	t)	recolor_png=color; TintingMod='-tint'; tint=$OPTARG ;;
-	T)	recolor_png=color; TintingMod='-tint'; tint=100 ;;
-	\?) show_help; exit 1 ;;
+	case $# in
+	1) IMAGE_DIR_OUT=$(realpath $1) ;;
+	*)
+		case $1 in
+		-m)	arg=m
+			CRefs=$(expr $2 : '\([,#0-9]*\)')
+			if expr $2 : '\(.*,.*\)' > /dev/null
+			then
+				CRefIn=($(color_value $(echo $CRefs | cut -d, -f 1)))
+				CRefOut=($(color_value $(echo $CRefs | cut -d, -f 2)))
+			else
+				CRefOut=($(color_value $CRefs))
+			fi
+			shift
+			;;
+		-M) arg=M ;;
+		-H)	H='TRUE' ;;
+		-L)	L='TRUE' ;;
+		-O)	composite='TRUE' ;;
+		-p)	source $2 ; data_file="$(realpath $2)"
+			if [[ $CRefIn == '' ]]
+			then CRefIn=($(color_value $CREF_IN)); fi
+			if [[ $CRefOut == '' ]]
+			then CRefOut=($(color_value $CREF_OUT)); fi
+			shift ;;
+		-S)	S='TRUE' ;;
+		\?) show_help; exit 1 ;;
+		*) if test -z "$arg"; then imarg1=($imarg1 $1); else imarg2=($imarg2 $1); fi 
+			;;
+		esac
 	esac
+shift
 done
 
-# shift to <dir-in> <dir-out>
-if [[ $OPTIND == 1 ]]
-then
- show_help; exit 1;
-fi
-
-shift $(($OPTIND -1))
+cd $MAIN_DIR
 
 reload='FALSE'
-if [[ $2 == '' ]]
+if [[ $IMAGE_DIR_IN == '' ]]
 then
-	if [[ $1 == '' ]]
-	then
-	IMAGE_DIR_OUT=$MAIN_DIR/cache
-	else
-	IMAGE_DIR_OUT=$(realpath $1)
-	fi
 	# recursive functionality
 	if [[ $data_file == 'ini.dat' ]] && [[ -f $IMAGE_DIR_OUT/out.dat ]]
 	then
@@ -283,13 +241,13 @@ then
 		data_file="$IMAGE_DIR_OUT/out.dat"
 		source $data_file
 		COLOR_SCHEME_INI=($COLOR_SCHEME)
-		CRefIn=($(hexacv $CREF_IN))
-		CRefOut=($(hexacv $CREF_OUT))
+		if [[ $CRefIn == '' ]]
+		then CRefIn=($(color_value $CREF_IN)); fi
+		if [[ $CRefOut == '' ]]
+		then CRefOut=($(color_value $CREF_OUT)); fi
 	fi
 else
 	# (re)load IMAGE_DIR_OUT
-	IMAGE_DIR_IN=$(realpath $1)
-	IMAGE_DIR_OUT=$(realpath $2)
 	reload='TRUE'
 fi
 
@@ -327,36 +285,29 @@ case $reload in
 esac
 
 # modulate arguments
+modulate_arg=''
 case $arg in
-c|g|G|m)
-	modulate $CRefIn $CRefOut
+m|M)	modulate_arg $CRefIn $CRefOut
+	modulate_arg=(-modulate $modulate_brightness,$modulate_saturation,$modulate_hue)
 esac
 
+imarg=($imarg1 $modulate_arg $imarg2)
+
+if [[ $imarg != '' ]]
+then
 # recolor png
-case $arg in
-c|g|G|m)
 	cd $IMAGE_DIR_OUT
 	echo "convert images : $SUBDIRS..."
-	recolor_path $recolor_png $png_recolor_paths
+	recolor_path recolor $png_recolor_paths
 
-	case $arg in
-	g)	recolor_path recolor $png_recolor_paths
-	esac
-esac
+echo $imarg1 $IMAGE_DIR_IN
 
 # recolor svg
-case $arg in
-c|g|G|m)
 	echo "default color scheme : $COLOR_SCHEME_INI"
 	color_scheme_ini=($(hexacv $COLOR_SCHEME_INI))
 
 	cd $MAIN_DIR
 	color_scheme=($(recolor_xpm $color_scheme_ini))
-
-	case $arg in
-	g)	recolor_png=recolor
-		color_scheme=($(recolor_xpm $color_scheme))
-	esac
 
 	i=1; set $color_scheme
 	for color; do COLOR_SCHEME[i]="'#$color'"; (( i++ )); done
@@ -367,7 +318,7 @@ c|g|G|m)
 	cd -
 
 	recolor_path substitute_color $svg_recolor_paths
-esac
+fi
 
 # compose images
 if [[ $composite == 'TRUE' ]]
