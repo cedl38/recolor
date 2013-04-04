@@ -139,9 +139,9 @@ fi
 modulate() {
 if [[ $arg == 'c' ]] 
 then
-	if [[ $H == 'FALSE' ]] && [[ $S == 'FALSE' ]] && [[ $B == 'FALSE' ]]
+	if [[ $H == 'FALSE' ]] && [[ $S == 'FALSE' ]] && [[ $L == 'FALSE' ]]
 	then
-		H='TRUE'; S='TRUE'; B='TRUE'
+		H='TRUE'; S='TRUE'; L='TRUE'
 	fi
 	CRefIn_hsl=($(./colorcv $1 -hsl))
 	CRefOut_hsl=($(./colorcv $2 -hsl))
@@ -159,7 +159,7 @@ then
 	else
 		modulate_saturation=100
 	fi
-	if [[ $B == 'TRUE' ]]
+	if [[ $L == 'TRUE' ]]
 	then
 		modulate_brightness=$(alpha 100 $CRefIn_hsl[3] $CRefOut_hsl[3])
 	else
@@ -184,14 +184,14 @@ show_help() {
 echo "
 usage : [OPTIONS] [ARG] <dir-in> <dir-out>
 ARGUMENTS :
-	-b <brightness> : modulate brightness (0 to 200)
+	-l <luminance> : modulate luminance (0 to 200)
 	-c <color-ref-in>,<color-ref-out> | <color-ref-out> : initial,destination color by name or hexadecimal. <Br>=Brown
-	-g <brightness> : convert images to grayscale and modulate brightness
+	-g <luminance> : convert images to grayscale and modulate luminance
 	-G : convert images to grayscale
 	-h <hue-angle> | <src-hue,dst-hue> : modulate hue angle or hue source, destination.
 	-s <saturation> : modulate saturation (0 to 200)
 OPTIONS :
-	-B : modulate brightness from -c arg.
+	-L : modulate luminance from -c arg.
 	-f <colorize> : fill color (0 to 100)
 	-F : fill color colorize=100
 	-H : modulate hue from -c arg.
@@ -210,15 +210,15 @@ data_file='ini.dat'
 # default data source
 source ini.dat
 composite='FALSE'
-H='FALSE'; S='FALSE'; B='FALSE'
+H='FALSE'; S='FALSE'; L='FALSE'
 negate=''
 arg=c
 
-while getopts b:Bc:f:Fg:Gh:HNOp:s:St:T opt
+while getopts c:f:Fg:Gh:Hl:LNOp:s:St:T opt
 do
 	case $opt in
-	b)	arg=m; modulate_brightness=$OPTARG ;;
-	B)	B='TRUE' ;;
+	l)	arg=m; modulate_brightness=$OPTARG ;;
+	L)	L='TRUE' ;;
 	c)	arg=c
 		CRefs=$(expr $OPTARG : '\([,#0-9a-zA-Z]*\)')
 		if expr $OPTARG : '\(.*,.*\)' > /dev/null
