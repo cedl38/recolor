@@ -1,6 +1,7 @@
 PKG_FILES = 	\
 	colorcv	\
 	colormap	\
+	colorpick	\
 	ini.xpm	\
 	ini.dat	\
 	recolor.sh	\

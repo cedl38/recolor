@@ -1,0 +1,27 @@
+#!/bin/zsh
+
+# remove inkscape prefs | cut -d: -f2
+object_filter() {
+for file
+do
+echo $file
+if [[ -f $file ]]; then
+echo ok
+awk '$1 ~ /<inkscape:/,/\/>/  {next} {print}' $file; fi
+done
+}
+
+ids=(color fill stroke stop-color pagecolor bordercolor)
+pick_colors() {
+	for id
+	do
+	grep -o -P "[ \t]$id=\"[#0-9a-zA-Z]*\"" /tmp/colorpick_pattern.svg \
+	| cut -d\" -f2
+	grep -o "[\";]$id:[#0-9a-zA-Z]*;" /tmp/colorpick_pattern.svg \
+	| cut -d: -f2 | cut -d\; -f1
+	done
+}
+
+object_filter $@ > /tmp/colorpick_pattern.svg
+pick_colors $ids | sort | uniq | grep -v 'none'
+

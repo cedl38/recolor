@@ -14,15 +14,8 @@ done
 echo $paths
 }
 
-color_pick() {
-# pick up colors in images
-convert 32x32/actions/folder.png folder.xpm
-default_color_map=($(grep -o 'c [#0-9a-ZA-Z]*"' foo.xpm | cut -d' ' -f2 | cut -d\" -f1 | grep -v 'None'))
-}
-
 # steps :
 ##########
-
 
 # (b-a)/(p1-a) == (y-x) (p2-x)
 # x = (p1*x - b*x + b*p2 - a*p2)/(p1 - a)
@@ -43,7 +36,7 @@ hexacv() {
 			echo "${i:1:6}"
 		else
 			# convert color name to hexa
-			echo $(grep -P "$i\t" colormap | cut -f3 | cut -d'#' -f2)
+			echo $(grep -P "$i\t" $MAIN_DIR/colormap | cut -f3 | cut -d'#' -f2)
 		fi
 	done
 }
@@ -168,6 +161,7 @@ ImageMagick ARGUMENTS 1|2 : Convert argument from ImageMagick
 ARGUMENTS :
 	-m <color-ref-in>,<color-ref-out> | <color-ref-out> : move color from initial,destination (name or hexadecimal value). <Br>=Brown
 OPTIONS :
+	-C : generate a color scheme from svg files
 	-L : modulate luminance from -m arg.
 	-H : modulate hue from -m arg.
 	-O : compose icons with composite function
@@ -183,8 +177,7 @@ MAIN_DIR=$(dirname $(realpath $0))
 # default data source
 data_file='ini.dat'
 source $MAIN_DIR/ini.dat
-composite='FALSE'
-H='FALSE'; S='FALSE'; L='FALSE'
+composite='FALSE'; C='FALSE'; H='FALSE'; S='FALSE'; L='FALSE'
 arg=''; imarg1=''; imarg2=''
 
 case $1 in
@@ -199,6 +192,7 @@ do
 	1) IMAGE_DIR_OUT=$(realpath $1) ;;
 	*)
 		case $1 in
+		-C)	C='TRUE' ;;
 		-m)	arg=m
 			CRefs=$(expr $2 : '\([,#0-9]*\)')
 			if expr $2 : '\(.*,.*\)' > /dev/null
@@ -303,6 +297,10 @@ then
 echo $imarg1 $IMAGE_DIR_IN
 
 # recolor svg
+	if [[ $C == 'TRUE' ]]
+	then
+		COLOR_SCHEME_INI=($($MAIN_DIR/colorpick $svg_recolor_paths))
+	fi
 	echo "default color scheme : $COLOR_SCHEME_INI"
 	color_scheme_ini=($(hexacv $COLOR_SCHEME_INI))
 
