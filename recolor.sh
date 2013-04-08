@@ -5,12 +5,16 @@ zmodload zsh/mathfunc
 set -e
 
 make_paths() {
+ext=$1; shift
 paths=''
-for folder
-do
-paths_folder=($(echo -e $(echo $recolor_paths|sed 's/ /\\n/g')| sed "s/^/$folder\//g"))
-paths=($paths $paths_folder)
-done
+if [[ $1 != '' ]]; then
+	for folder
+	do
+	paths_folder=($(echo -e $(echo $recolor_paths|sed 's/ /\\n/g') \
+	| sed "s/^/$folder\//g" | sed "s/$/.$ext/g" ))
+	paths=($paths $paths_folder)
+	done
+fi
 echo $paths
 }
 
@@ -258,8 +262,8 @@ then
 else
 	cd $IMAGE_DIR_OUT
 	recolor_paths=$RECOLOR_PATHS
-	png_recolor_paths=($(make_paths $PNG_SUBDIRS))
-	svg_recolor_paths=($(make_paths $SVG_SUBDIRS | sed 's/.png/.svg/g'))
+	png_recolor_paths=($(make_paths png $PNG_SUBDIRS))
+	svg_recolor_paths=($(make_paths svg $SVG_SUBDIRS))
 	cd -
 fi
 
@@ -334,12 +338,12 @@ then
 	else
 	echo "compose images : $PNG_SUBDIRS..."
 	recolor_paths=$COMPOSITE_PATHS
-	composite_paths=($(make_paths $PNG_SUBDIRS))
+	composite_paths=($(make_paths png $PNG_SUBDIRS))
 	recolor_paths=$PART1_PATHS
-	part1_paths=($(make_paths $PNG_SUBDIRS))
+	part1_paths=($(make_paths png $PNG_SUBDIRS))
 	recolor_paths=$PART2_PATHS
 	cd $part2_dir
-	part2_paths=($(make_paths $PNG_SUBDIRS))
+	part2_paths=($(make_paths png $PNG_SUBDIRS))
 	cd -
 	fi
 	compose_images $composite_paths
