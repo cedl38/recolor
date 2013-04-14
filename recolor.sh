@@ -308,14 +308,17 @@ then
 	color_scheme_ini=($(hexacv $COLOR_SCHEME_INI))
 
 	cd $MAIN_DIR
+
 	color_scheme=($(recolor_xpm $color_scheme_ini))
 
 	i=1; set $color_scheme
 	for color; do COLOR_SCHEME[i]="'#$color'"; (( i++ )); done
 	echo "new color scheme : $COLOR_SCHEME"
+	if [[ OUT_DAT == 'TRUE' ]]; then
 	sed "s/COLOR_SCHEME_INI=(.*)/COLOR_SCHEME=($COLOR_SCHEME)/" $data_file > /tmp/recolor_tmp.dat
-	mv /tmp/recolor_tmp.dat $IMAGE_DIR_OUT/out.dat
-	sed -i "s/CREF_IN='.*'/CREF_IN=\'\#$CRefOut\'/" $IMAGE_DIR_OUT/out.dat
+		mv /tmp/recolor_tmp.dat $IMAGE_DIR_OUT/out.dat
+		sed -i "s/CREF_IN='.*'/CREF_IN=\'\#$CRefOut\'/" $IMAGE_DIR_OUT/out.dat
+	fi
 	cd -
 
 	recolor_path substitute_color $svg_recolor_paths

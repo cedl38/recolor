@@ -1,5 +1,8 @@
 #!/bin/zsh
 
+# enable out.dat file (Default)
+OUT_DAT='TRUE'
+
 COLOR_SCHEME_INI=('#000000' '#000000' '#000000')
 CRefIn=''
 CRefOut=''
@@ -19,3 +22,4 @@ PART2_PATHS=()
 export COLOR_SCHEME_INI CRefIn CRefOut
 export PNG_SUBDIRS SVG_SUBDIRS RECOLOR_PATHS
 export PART2_DIR COMPOSITE_PATHS PART1_PATHS PART2_PATHS
+export OUT_DAT
