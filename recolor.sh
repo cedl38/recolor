@@ -102,7 +102,7 @@ compose_images() {
 i=1
 for composite_path
 do
-composite $part2_dir/$part2_paths[i] $part1_paths[i] $composite_path
+composite $PART2_DIR/$part2_paths[i] $part1_paths[i] $composite_path
 (( i++ ))
 done
 }
@@ -164,12 +164,13 @@ usage : <dir-in> [ImageMagick ARG1] [ARG] [OPTIONS] [ImageMagick ARG2] <dir-out>
 ImageMagick ARGUMENTS 1|2 : Convert argument from ImageMagick
 ARGUMENTS :
 	-m <color-ref-in>,<color-ref-out> | <color-ref-out> : move color from initial,destination (name or hexadecimal value). <Br>=Brown
+	-M : move color, arguments in *.dat file.
 OPTIONS :
 	-C : generate a color scheme from svg files
 	-L : modulate luminance from -m arg.
 	-H : modulate hue from -m arg.
 	-O : compose icons with composite function
-	-p <paths-lists> : file contain list of pathname parameters
+	-p <filename.dat> : *.dat file contain list of parameters
 	-S : modulate saturation from -m arg.
 	"
 }
@@ -298,8 +299,6 @@ then
 	echo "convert images : $SUBDIRS..."
 	recolor_path recolor $png_recolor_paths
 
-echo $imarg1 $IMAGE_DIR_IN
-
 # recolor svg
 	if [[ $C == 'TRUE' ]]
 	then
@@ -326,13 +325,13 @@ fi
 if [[ $composite == 'TRUE' ]]
 then
 	cd $IMAGE_DIR_OUT
-	part2_dir=stock
 	if [[ $COMPOSITE_PATHS == '' ]]
 	then
+	PART2_DIR=stock
 	echo "compose images : $IMAGE_DIR_OUT..."
 	part1_paths=($(find **/*.png -type f))
 	composite_paths=$IMAGE_DIR_OUT
-	cd $part2_dir
+	cd $PART2_DIR
 	part2_paths=($(find **/*.png -type f))
 	cd -
 	else
@@ -342,7 +341,7 @@ then
 	recolor_paths=$PART1_PATHS
 	part1_paths=($(make_paths png $PNG_SUBDIRS))
 	recolor_paths=$PART2_PATHS
-	cd $part2_dir
+	cd $PART2_DIR
 	part2_paths=($(make_paths png $PNG_SUBDIRS))
 	cd -
 	fi
