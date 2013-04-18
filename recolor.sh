@@ -60,13 +60,17 @@ convert $1 $imarg $1
 
 substitute_color() {
 image=$1
+# add mark to ensure color are converted only one time
+for i in $color_scheme_ini
+do
+sed -i "s/\#$i/\@$i/g" $image
+done
 j=1;
-set $color_scheme_ini
-	for i
-	do
-	sed -i "s/\#$i/\#$color_scheme[j]/g" $image
-	(( j++ ))
-	done
+for i in $color_scheme_ini
+do
+sed -i "s/\@$i/\#$color_scheme[j]/g" $image
+(( j++ ))
+done
 }
 
 recolor_xpm() {
