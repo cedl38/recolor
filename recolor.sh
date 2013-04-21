@@ -165,7 +165,9 @@ esac
 show_help() {
 echo "
 usage : <dir-in> [ImageMagick ARG1] [ARG] [OPTIONS] [ImageMagick ARG2] <dir-out>
-ImageMagick ARGUMENTS 1|2 : Convert argument from ImageMagick
+[ImageMagick ARGUMENTS 1|2]: argument from ImageMagick convert program
+
+	--help : show this help message
 ARGUMENTS :
 	-m <color-ref-in>,<color-ref-out> | <color-ref-out> : move color from initial,destination (name or hexadecimal value). <Br>=Brown
 	-M : move color, arguments in *.dat file.
@@ -190,8 +192,9 @@ composite='FALSE'; C='FALSE'; H='FALSE'; S='FALSE'; L='FALSE'
 arg=''; imarg1=''; imarg2=''
 
 case $1 in
--*)	IMAGE_DIR_IN='' ;;
-*)	IMAGE_DIR_IN=$(realpath $1) ; shift ;;
+--help)	show_help; exit 1 ;;
+-*)		IMAGE_DIR_IN='' ;;
+*)		IMAGE_DIR_IN=$(realpath $1) ; shift ;;
 esac
 
 # parse options
@@ -224,7 +227,6 @@ do
 			then CRefOut=($(color_value $CREF_OUT)); fi
 			shift ;;
 		-S)	S='TRUE' ;;
-		\?) show_help; exit 1 ;;
 		*) if test -z "$arg"; then imarg1=($imarg1 $1); else imarg2=($imarg2 $1); fi 
 			;;
 		esac
