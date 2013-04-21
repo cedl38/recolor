@@ -9,6 +9,7 @@ PKG_FILES = 	\
 
 # install directory
 DESTDIR = /usr/local/share
+BINDIR = /usr/local/bin
 
 all: rotate colorcv
 
@@ -27,6 +28,8 @@ cleanall: clean
 install: all
 	mkdir -p $(DESTDIR)/recolor
 	cp $(PKG_FILES) $(DESTDIR)/recolor
+	ln -s $(DESTDIR)/recolor/recolor.sh $(BINDIR)/recolor
 
 uninstall:
-	rm -r $(DESTDIR)/recolor
+	rm -rf $(DESTDIR)/recolor
+	rm -f $(BINDIR)/recolor

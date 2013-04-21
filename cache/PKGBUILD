@@ -18,5 +18,7 @@ build () {
 
 package() {
 	cd $srcdir/${pkgname}-${pkgver}
-	make DESTDIR="${pkgdir}/usr/local/share" install
+	install -d -m755 $pkgdir/usr/local/bin
+	make DESTDIR="${pkgdir}/usr/local/share" \
+	BINDIR="${pkgdir}/usr/local/bin" install
 }
