@@ -336,7 +336,7 @@ then
 	cd $IMAGE_DIR_OUT
 	if [[ $COMPOSITE_PATHS == '' ]]
 	then
-	PART2_DIR=stock
+	PART2_DIR=src
 	echo "compose images : $IMAGE_DIR_OUT..."
 	part1_paths=($(find **/*.png -type f))
 	composite_paths=$IMAGE_DIR_OUT
